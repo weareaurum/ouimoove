@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useStore } from './hooks/useStore.js'
 import { useToast } from './hooks/useToast.js'
 import { Navbar } from './components/Navbar.jsx'
@@ -13,28 +13,9 @@ import { MyTicketsModal } from './components/modals/MyTicketsModal.jsx'
 import { FavoritesModal } from './components/modals/FavoritesModal.jsx'
 import { ProfileModal } from './components/modals/ProfileModal.jsx'
 import { OrganizerModal } from './components/modals/OrganizerModal.jsx'
-import { useEffect } from "react";
-import { supabase } from "./lib/supabase";
+import { supabase } from './lib/supabase'
 
 function App() {
-  useEffect(() => {
-    const testSupabase = async () => {
-      console.log("SUPABASE URL:", import.meta.env.VITE_SUPABASE_URL);
-
-      const { data, error } = await supabase.from("your_table_name").select("*");
-
-      console.log("DATA:", data);
-      console.log("ERROR:", error);
-    };
-
-    testSupabase();
-  }, []);
-
-  return <div>Ouimoove</div>;
-}
-
-export default App;
-export default function App() {
   const store = useStore()
   const { toasts, toast } = useToast()
 
@@ -45,15 +26,34 @@ export default function App() {
   const [filterCategory, setFilterCategory] = useState('')
   const [sortBy, setSortBy] = useState('date')
 
+  useEffect(() => {
+    console.log('SUPABASE URL:', import.meta.env.VITE_SUPABASE_URL)
+    console.log('Supabase client:', supabase)
+  }, [])
+
   const open = (m) => setModal(m)
   const close = () => setModal(null)
 
-  const openEvent = (id) => { setSelectedEventId(id); open('event') }
-  const requireAuth = (then) => { if (!store.user) { open('login'); return false } then(); return true }
+  const openEvent = (id) => {
+    setSelectedEventId(id)
+    open('event')
+  }
+
+  const requireAuth = (then) => {
+    if (!store.user) {
+      open('login')
+      return false
+    }
+    then()
+    return true
+  }
 
   const handleAddToCart = (event, selections) => {
     const ok = store.addToCart(event, selections)
-    if (!ok) { toast('Sélectionnez au moins 1 billet', 'error'); return }
+    if (!ok) {
+      toast('Sélectionnez au moins 1 billet', 'error')
+      return
+    }
     toast('Billets ajoutés au panier !', 'success')
     close()
   }
@@ -71,7 +71,7 @@ export default function App() {
     toast(wasFav ? 'Retiré des favoris' : 'Ajouté aux favoris ❤️', wasFav ? 'info' : 'success')
   }
 
-  const selectedEvent = store.events.find(e => e.id === selectedEventId)
+  const selectedEvent = store.events.find((e) => e.id === selectedEventId)
 
   return (
     <>
@@ -85,14 +85,21 @@ export default function App() {
         onFavorites={() => requireAuth(() => open('favorites'))}
         onProfile={() => requireAuth(() => open('profile'))}
         onOrganizer={() => requireAuth(() => open('organizer'))}
-        onLogout={() => { store.logout(); toast('À bientôt !', 'info') }}
+        onLogout={() => {
+          store.logout()
+          toast('À bientôt !', 'info')
+        }}
       />
 
       <Hero
-        search={search} setSearch={setSearch}
-        filterCity={filterCity} setFilterCity={setFilterCity}
-        filterCategory={filterCategory} setFilterCategory={setFilterCategory}
-        sortBy={sortBy} setSortBy={setSortBy}
+        search={search}
+        setSearch={setSearch}
+        filterCity={filterCity}
+        setFilterCity={setFilterCity}
+        filterCategory={filterCategory}
+        setFilterCategory={setFilterCategory}
+        sortBy={sortBy}
+        setSortBy={setSortBy}
       />
 
       <EventGrid
@@ -106,7 +113,6 @@ export default function App() {
         onToggleFav={handleToggleFav}
       />
 
-      {/* ── MODALS ── */}
       <AuthModal
         mode={modal === 'login' ? 'login' : modal === 'signup' ? 'signup' : null}
         onClose={close}
@@ -144,7 +150,10 @@ export default function App() {
         cart={store.cart}
         cartTotal={store.cartTotal}
         onClose={close}
-        onRemove={(id) => { store.removeFromCart(id); toast('Retiré du panier', 'info') }}
+        onRemove={(id) => {
+          store.removeFromCart(id)
+          toast('Retiré du panier', 'info')
+        }}
         onCheckout={() => open('checkout')}
       />
 
@@ -181,7 +190,11 @@ export default function App() {
           toast('Profil mis à jour', 'success')
           close()
         }}
-        onLogout={() => { store.logout(); toast('À bientôt !', 'info'); close() }}
+        onLogout={() => {
+          store.logout()
+          toast('À bientôt !', 'info')
+          close()
+        }}
       />
 
       <OrganizerModal
@@ -190,8 +203,14 @@ export default function App() {
         myEvents={store.myEvents}
         purchases={store.purchases}
         onClose={close}
-        onCreate={(ev) => { store.createEvent(ev); toast('Événement publié ! 🎉', 'success') }}
-        onDelete={(id) => { store.deleteEvent(id); toast('Événement supprimé', 'info') }}
+        onCreate={(ev) => {
+          store.createEvent(ev)
+          toast('Événement publié ! 🎉', 'success')
+        }}
+        onDelete={(id) => {
+          store.deleteEvent(id)
+          toast('Événement supprimé', 'info')
+        }}
         onCheckin={(id) => store.checkinPurchase(id)}
         toast={toast}
       />
@@ -200,3 +219,5 @@ export default function App() {
     </>
   )
 }
+
+export default App
