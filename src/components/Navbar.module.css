@@ -1,0 +1,92 @@
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(10,10,15,0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+}
+
+.logo {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.5rem;
+  background: linear-gradient(135deg, var(--orange), var(--purple2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  cursor: default;
+  user-select: none;
+}
+.logo span { -webkit-text-fill-color: var(--orange); }
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* shared btn base */
+.btnGhost,
+.btnPrimary,
+.btnPurple {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-family: var(--font-body);
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all .2s;
+  position: relative;
+}
+
+.btnGhost {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+.btnGhost:hover { color: var(--text); border-color: var(--purple); background: rgba(124,58,237,.1); }
+
+.btnPrimary {
+  background: linear-gradient(135deg, var(--orange), #e85d04);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(255,107,53,.3);
+}
+.btnPrimary:hover { box-shadow: 0 6px 22px rgba(255,107,53,.4); transform: translateY(-1px); }
+
+.btnPurple {
+  background: linear-gradient(135deg, var(--purple), var(--purple2));
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(124,58,237,.3);
+}
+.btnPurple:hover { box-shadow: 0 6px 22px rgba(124,58,237,.45); transform: translateY(-1px); }
+
+.badge {
+  position: absolute;
+  top: -6px; right: -6px;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: var(--orange);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 680px) {
+  .nav { padding: 0 1rem; }
+  .label { display: none; }
+  .btnGhost, .btnPrimary, .btnPurple { padding: 7px 10px; }
+}

@@ -1,0 +1,91 @@
+.summary {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+}
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 0.88rem;
+  border-bottom: 1px solid var(--border);
+  gap: 12px;
+}
+.summaryRow:last-child { border: none; }
+.total { font-weight: 700; color: var(--orange); padding-top: 10px; }
+
+.sectionLabel {
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.methods {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.method {
+  flex: 1;
+  padding: 10px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg3);
+  cursor: pointer;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--muted);
+  transition: all .2s;
+  font-family: var(--font-body);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.method:hover, .selected {
+  border-color: var(--purple);
+  background: rgba(124,58,237,.15);
+  color: var(--purple3);
+}
+.methodIcon { font-size: 1.4rem; }
+
+.fields { margin-bottom: 8px; }
+
+.group { margin-bottom: 14px; }
+.label { display: block; font-size: 0.82rem; color: var(--muted); margin-bottom: 6px; }
+.input {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color .2s;
+}
+.input:focus { border-color: var(--purple); }
+.input::placeholder { color: var(--muted); }
+
+.row { display: flex; gap: 12px; }
+.row .group { flex: 1; }
+
+.confirmBtn {
+  width: 100%;
+  background: linear-gradient(135deg, var(--purple), var(--purple2));
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 13px;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .2s;
+  box-shadow: 0 4px 20px rgba(124,58,237,.3);
+  margin-top: 6px;
+}
+.confirmBtn:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(124,58,237,.4); }

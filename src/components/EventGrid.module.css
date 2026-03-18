@@ -1,0 +1,21 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  padding: 0 2rem 5rem;
+  position: relative;
+  z-index: 1;
+}
+
+.empty {
+  text-align: center;
+  padding: 80px 2rem;
+  color: var(--muted);
+  z-index: 1;
+  position: relative;
+}
+.emptyIcon { font-size: 3rem; margin-bottom: 12px; }
+
+@media (max-width: 600px) {
+  .grid { padding: 0 1rem 4rem; grid-template-columns: 1fr; }
+}

@@ -1,0 +1,272 @@
+/* ── Tab bar ── */
+.tabBar {
+  display: flex;
+  gap: 4px;
+  background: var(--bg3);
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+
+.tab {
+  flex: 1;
+  min-width: 90px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  transition: all .2s;
+  white-space: nowrap;
+}
+.tabActive {
+  background: var(--bg2);
+  color: var(--text);
+  box-shadow: 0 1px 4px rgba(0,0,0,.3);
+}
+
+/* ── Stats ── */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.statCard {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 14px;
+}
+
+.statVal {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.6rem;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.statLabel {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+/* ── My Events list ── */
+.eventList { display: flex; flex-direction: column; gap: 10px; }
+
+.eventRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+
+.eventRowLeft { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+
+.eventRowEmoji {
+  font-size: 1.8rem;
+  flex-shrink: 0;
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg2);
+  border-radius: 8px;
+}
+
+.eventRowTitle {
+  font-weight: 700;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.eventRowMeta {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.deleteBtn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--danger);
+  border-radius: 8px;
+  width: 34px; height: 34px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: all .2s;
+}
+.deleteBtn:hover { background: rgba(239,68,68,.1); border-color: var(--danger); }
+
+/* ── Create form ── */
+.formRow { display: flex; gap: 12px; }
+.formRow .group { margin-bottom: 14px; }
+
+.group { margin-bottom: 14px; }
+
+.label {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.input {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 9px 13px;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  outline: none;
+  transition: border-color .2s;
+}
+.input:focus { border-color: var(--purple); }
+.input::placeholder { color: var(--muted); }
+
+.sectionLabel {
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.ticketTypeRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.ticketTypeRow .input { margin: 0; }
+
+.removeTtBtn {
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--danger);
+  cursor: pointer;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .2s;
+}
+.removeTtBtn:hover { background: rgba(239,68,68,.1); border-color: var(--danger); }
+
+.addTtBtn {
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--purple3);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-family: var(--font-body);
+  transition: all .2s;
+  margin-bottom: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.addTtBtn:hover { border-color: var(--purple); background: rgba(124,58,237,.1); }
+
+.error {
+  color: var(--danger);
+  font-size: 0.82rem;
+  margin-bottom: 10px;
+}
+
+.publishBtn {
+  width: 100%;
+  background: linear-gradient(135deg, var(--purple), var(--purple2));
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 12px;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .2s;
+  box-shadow: 0 4px 20px rgba(124,58,237,.3);
+}
+.publishBtn:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(124,58,237,.4); }
+
+/* ── Attendees ── */
+.attendeeList { display: flex; flex-direction: column; gap: 2px; }
+
+.attendeeRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.attendeeRow:last-child { border: none; }
+
+.attendeeAvatar {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--purple), var(--orange));
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.attendeeInfo { flex: 1; min-width: 0; }
+.attendeeName  { font-weight: 600; font-size: 0.88rem; }
+.attendeeTickets { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+
+.checkinBtn {
+  padding: 5px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-family: var(--font-body);
+  transition: all .2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.checkinBtn:hover { border-color: var(--success); color: var(--success); }
+.checkedIn {
+  background: rgba(34,197,94,.12);
+  color: var(--success);
+  border-color: rgba(34,197,94,.4);
+}
+
+/* ── Shared hint ── */
+.hint {
+  color: var(--muted);
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 24px 0;
+  line-height: 1.6;
+}
+
+@media (max-width: 520px) {
+  .tabBar { gap: 2px; }
+  .tab { font-size: 0.75rem; padding: 7px 6px; min-width: 70px; }
+  .formRow { flex-direction: column; gap: 0; }
+  .ticketTypeRow { flex-wrap: wrap; }
+}

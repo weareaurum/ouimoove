@@ -1,0 +1,93 @@
+.googleBtn {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  transition: all .2s;
+  margin-bottom: 4px;
+}
+.googleBtn:hover { border-color: var(--purple); background: rgba(124,58,237,.08); }
+
+.divider {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.82rem;
+  margin: 16px 0;
+  position: relative;
+}
+.divider::before {
+  content: '';
+  position: absolute;
+  top: 50%; left: 0; right: 0;
+  height: 1px;
+  background: var(--border);
+}
+.divider span { background: var(--bg2); padding: 0 12px; position: relative; }
+
+.group { margin-bottom: 14px; }
+
+.label {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.input {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color .2s;
+}
+.input:focus { border-color: var(--purple); }
+.input::placeholder { color: var(--muted); }
+
+.error {
+  color: var(--danger);
+  font-size: 0.82rem;
+  margin-bottom: 10px;
+}
+
+.submitBtn {
+  width: 100%;
+  background: linear-gradient(135deg, var(--orange), #e85d04);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 11px;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .2s;
+  box-shadow: 0 4px 20px rgba(255,107,53,.3);
+}
+.submitBtn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(255,107,53,.4); }
+.submitBtn:disabled { opacity: .6; cursor: not-allowed; }
+
+.switchTxt {
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-top: 14px;
+}
+.link {
+  color: var(--purple3);
+  cursor: pointer;
+  text-decoration: underline;
+}
