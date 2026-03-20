@@ -11,7 +11,7 @@ export function Navbar({
         <img
           src="/ouimoove-logo.png"
           alt="OuiMoove"
-          style={{ height: '42px', width: 'auto', display: 'block' }}
+          style={{ height: '70px', width: 'auto', display: 'block' }}
         />
       </div>
 
