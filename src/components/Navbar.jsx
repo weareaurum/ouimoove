@@ -8,7 +8,11 @@ export function Navbar({
   return (
     <nav className={styles.nav}>
       <div className={styles.logo}>
-        Oui<span>Moove</span>
+        <img
+          src="/ouimoove-logo.png"
+          alt="OuiMoove"
+          style={{ height: '42px', width: 'auto', display: 'block' }}
+        />
       </div>
 
       <div className={styles.right}>

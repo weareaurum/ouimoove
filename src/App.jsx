@@ -34,6 +34,16 @@ function App() {
   const open = (m) => setModal(m)
   const close = () => setModal(null)
 
+  const goHome = () => {
+    close()
+    setSelectedEventId(null)
+    setSearch('')
+    setFilterCity('')
+    setFilterCategory('')
+    setSortBy('date')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   const openEvent = (id) => {
     setSelectedEventId(id)
     open('event')
@@ -59,22 +69,31 @@ function App() {
   }
 
   const handlePurchase = async (method) => {
-  const result = await store.purchase(method)
+    const result = await store.purchase(method)
 
-  if (!result) {
-    toast('Paiement impossible. Réessayez.', 'error')
-    return
+    if (!result) {
+      toast('Paiement impossible. Réessayez.', 'error')
+      return
+    }
+
+    close()
+    toast('🎉 Paiement confirmé ! Vos billets sont disponibles.', 'success')
   }
-
-  close()
-  toast('🎉 Paiement confirmé ! Vos billets sont disponibles.', 'success')
-}
 
   const handleToggleFav = async (eventId) => {
     if (!requireAuth(() => {})) return
     const wasFav = store.favorites.includes(eventId)
-    await store.toggleFavorite(eventId)
-    toast(wasFav ? 'Retiré des favoris' : 'Ajouté aux favoris ❤️', wasFav ? 'info' : 'success')
+    const ok = await store.toggleFavorite(eventId)
+
+    if (!ok) {
+      toast('Impossible de mettre à jour les favoris', 'error')
+      return
+    }
+
+    toast(
+      wasFav ? 'Retiré des favoris' : 'Ajouté aux favoris ❤️',
+      wasFav ? 'info' : 'success'
+    )
   }
 
   const selectedEvent = store.events.find((e) => e.id === selectedEventId)
@@ -84,6 +103,7 @@ function App() {
       <Navbar
         user={store.user}
         cartCount={store.cartCount}
+        onHome={goHome}
         onLogin={() => open('login')}
         onSignup={() => open('signup')}
         onCart={() => open('cart')}
@@ -218,22 +238,29 @@ function App() {
         purchases={store.purchases}
         onClose={close}
         onCreate={async (ev) => {
-  const created = await store.createEvent(ev)
-  if (!created) {
-    toast("Impossible de publier l'événement", 'error')
-    return
-  }
-  toast('Événement publié ! 🎉', 'success')
-}}
-onDelete={async (id) => {
-  const ok = await store.deleteEvent(id)
-  if (!ok) {
-    toast("Impossible de supprimer l'événement", 'error')
-    return
-  }
-  toast('Événement supprimé', 'info')
-}}
-        onCheckin={(id) => store.checkinPurchase(id)}
+          const created = await store.createEvent(ev)
+          if (!created) {
+            toast("Impossible de publier l'événement", 'error')
+            return
+          }
+          toast('Événement publié ! 🎉', 'success')
+        }}
+        onDelete={async (id) => {
+          const ok = await store.deleteEvent(id)
+          if (!ok) {
+            toast("Impossible de supprimer l'événement", 'error')
+            return
+          }
+          toast('Événement supprimé', 'info')
+        }}
+        onCheckin={async (purchaseId, eventId) => {
+          const ok = await store.checkinPurchase(purchaseId, eventId)
+          if (!ok) {
+            toast('Impossible de valider ce billet', 'error')
+            return
+          }
+          toast('Check-in mis à jour', 'success')
+        }}
         toast={toast}
       />
 
