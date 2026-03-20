@@ -19,7 +19,7 @@ function App() {
   const store = useStore()
   const { toasts, toast } = useToast()
 
-  const [modal, setModal] = useState(null) // 'login'|'signup'|'event'|'cart'|'checkout'|'tickets'|'favorites'|'profile'|'organizer'
+  const [modal, setModal] = useState(null)
   const [selectedEventId, setSelectedEventId] = useState(null)
   const [search, setSearch] = useState('')
   const [filterCity, setFilterCity] = useState('')
@@ -58,16 +58,22 @@ function App() {
     close()
   }
 
-  const handlePurchase = (method) => {
-    store.purchase(method)
-    close()
-    toast('🎉 Paiement confirmé ! Vos billets sont disponibles.', 'success')
+  const handlePurchase = async (method) => {
+  const result = await store.purchase(method)
+
+  if (!result) {
+    toast('Paiement impossible. Réessayez.', 'error')
+    return
   }
 
-  const handleToggleFav = (eventId) => {
+  close()
+  toast('🎉 Paiement confirmé ! Vos billets sont disponibles.', 'success')
+}
+
+  const handleToggleFav = async (eventId) => {
     if (!requireAuth(() => {})) return
     const wasFav = store.favorites.includes(eventId)
-    store.toggleFavorite(eventId)
+    await store.toggleFavorite(eventId)
     toast(wasFav ? 'Retiré des favoris' : 'Ajouté aux favoris ❤️', wasFav ? 'info' : 'success')
   }
 
@@ -85,8 +91,8 @@ function App() {
         onFavorites={() => requireAuth(() => open('favorites'))}
         onProfile={() => requireAuth(() => open('profile'))}
         onOrganizer={() => requireAuth(() => open('organizer'))}
-        onLogout={() => {
-          store.logout()
+        onLogout={async () => {
+          await store.logout()
           toast('À bientôt !', 'info')
         }}
       />
@@ -117,22 +123,26 @@ function App() {
         mode={modal === 'login' ? 'login' : modal === 'signup' ? 'signup' : null}
         onClose={close}
         onSwitch={(m) => open(m)}
-        onLogin={(email, pwd) => {
-          const r = store.login(email, pwd)
+        onLogin={async (email, pwd) => {
+          const r = await store.login(email, pwd)
           if (!r.ok) return r.error
           toast('Bienvenue, ' + r.user.name + ' !', 'success')
           close()
+          return null
         }}
-        onSignup={(name, email, pwd) => {
-          const r = store.signup(name, email, pwd)
+        onSignup={async (name, email, pwd) => {
+          const r = await store.signup(name, email, pwd)
           if (!r.ok) return r.error
           toast('Compte créé ! Bienvenue ' + r.user.name, 'success')
           close()
+          return null
         }}
-        onGoogle={() => {
-          const u = store.googleLogin()
-          toast('Connecté via Google — ' + u.name, 'success')
-          close()
+        onGoogle={async () => {
+          try {
+            await store.googleLogin()
+          } catch (error) {
+            toast(error.message || 'Connexion Google impossible', 'error')
+          }
         }}
       />
 
@@ -185,13 +195,17 @@ function App() {
         open={modal === 'profile'}
         user={store.user}
         onClose={close}
-        onSave={(name, email, pwd) => {
-          store.updateProfile(name, email, pwd)
+        onSave={async (name, email, pwd) => {
+          const updated = await store.updateProfile(name, email, pwd)
+          if (!updated) {
+            toast('Impossible de mettre à jour le profil', 'error')
+            return
+          }
           toast('Profil mis à jour', 'success')
           close()
         }}
-        onLogout={() => {
-          store.logout()
+        onLogout={async () => {
+          await store.logout()
           toast('À bientôt !', 'info')
           close()
         }}
@@ -203,14 +217,22 @@ function App() {
         myEvents={store.myEvents}
         purchases={store.purchases}
         onClose={close}
-        onCreate={(ev) => {
-          store.createEvent(ev)
-          toast('Événement publié ! 🎉', 'success')
-        }}
-        onDelete={(id) => {
-          store.deleteEvent(id)
-          toast('Événement supprimé', 'info')
-        }}
+        onCreate={async (ev) => {
+  const created = await store.createEvent(ev)
+  if (!created) {
+    toast("Impossible de publier l'événement", 'error')
+    return
+  }
+  toast('Événement publié ! 🎉', 'success')
+}}
+onDelete={async (id) => {
+  const ok = await store.deleteEvent(id)
+  if (!ok) {
+    toast("Impossible de supprimer l'événement", 'error')
+    return
+  }
+  toast('Événement supprimé', 'info')
+}}
         onCheckin={(id) => store.checkinPurchase(id)}
         toast={toast}
       />
