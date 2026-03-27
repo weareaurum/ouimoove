@@ -3,11 +3,14 @@ import { formatDate } from '../../utils/helpers.js'
 import styles from './FavoritesModal.module.css'
 
 export function FavoritesModal({ open, events, favorites, onClose, onOpenEvent, onToggleFav }) {
-  const favEvents = events.filter(e => favorites.includes(e.id))
+  const favEvents = events.filter((e) => favorites.includes(e.id))
 
   return (
     <Modal open={open} onClose={onClose} size="lg">
-      <ModalHeader title="❤️ Favoris" subtitle={favEvents.length ? `${favEvents.length} événement${favEvents.length > 1 ? 's' : ''} sauvegardé${favEvents.length > 1 ? 's' : ''}` : undefined} />
+      <ModalHeader
+        title="❤️ Favoris"
+        subtitle={favEvents.length ? `${favEvents.length} événement${favEvents.length > 1 ? 's' : ''} sauvegardé${favEvents.length > 1 ? 's' : ''}` : undefined}
+      />
       <ModalBody>
         {favEvents.length === 0 ? (
           <div className={styles.empty}>
@@ -17,7 +20,7 @@ export function FavoritesModal({ open, events, favorites, onClose, onOpenEvent, 
           </div>
         ) : (
           <div className={styles.list}>
-            {favEvents.map(e => (
+            {favEvents.map((e) => (
               <div key={e.id} className={styles.row}>
                 <div className={styles.emoji}>{e.emoji || '🎉'}</div>
                 <div className={styles.info}>
@@ -29,19 +32,8 @@ export function FavoritesModal({ open, events, favorites, onClose, onOpenEvent, 
                   </div>
                 </div>
                 <div className={styles.actions}>
-                  <button
-                    className={styles.viewBtn}
-                    onClick={() => { onClose(); onOpenEvent(e.id) }}
-                  >
-                    Voir
-                  </button>
-                  <button
-                    className={styles.removeBtn}
-                    onClick={() => onToggleFav(e.id)}
-                    aria-label="Retirer des favoris"
-                  >
-                    ✕
-                  </button>
+                  <button className={styles.viewBtn} onClick={() => { onClose(); onOpenEvent(e.id) }}>Voir</button>
+                  <button className={styles.removeBtn} onClick={() => onToggleFav(e.id)} aria-label="Retirer">✕</button>
                 </div>
               </div>
             ))}

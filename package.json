@@ -1,22 +1,21 @@
 {
   "name": "ouimoove",
-  "private": true,
   "version": "1.0.0",
+  "private": true,
   "type": "module",
   "scripts": {
-  "dev": "node ./node_modules/vite/bin/vite.js",
-  "build": "node ./node_modules/vite/bin/vite.js build",
-  "preview": "node ./node_modules/vite/bin/vite.js preview"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.99.2",
+    "@supabase/supabase-js": "^2.45.4",
     "qrcode": "^1.5.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "@types/react": "^18.3.1",
-    "@types/react-dom": "^18.3.1",
+    "@types/qrcode": "^1.5.5",
     "@vitejs/plugin-react": "^4.3.1",
     "vite": "^5.4.2"
   }

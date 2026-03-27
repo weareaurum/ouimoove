@@ -1,18 +1,26 @@
+import { useState } from 'react'
 import styles from './Navbar.module.css'
 
 export function Navbar({
-  user, cartCount,
+  user, cartCount, isOrganizer,
   onLogin, onSignup, onCart, onTickets,
   onFavorites, onProfile, onOrganizer, onLogout,
 }) {
+  const [logoErr, setLogoErr] = useState(false)
+
   return (
     <nav className={styles.nav}>
       <div className={styles.logo}>
-        <img
-          src="/ouimoove-logo.png"
-          alt="OuiMoove"
-          style={{ height: '200px', width: 'auto', display: 'block' }}
-        />
+        {!logoErr ? (
+          <img
+            src="/ouimoove-logo.png"
+            alt="OuiMoove"
+            style={{ height: '44px', width: 'auto', display: 'block' }}
+            onError={() => setLogoErr(true)}
+          />
+        ) : (
+          <span className={styles.logoText}>Oui<span>Moove</span></span>
+        )}
       </div>
 
       <div className={styles.right}>
@@ -33,9 +41,11 @@ export function Navbar({
             <button className={styles.btnGhost} onClick={onTickets}>
               🎟️ <span className={styles.label}>Mes Billets</span>
             </button>
-            <button className={styles.btnPurple} onClick={onOrganizer}>
-              📊 <span className={styles.label}>Dashboard</span>
-            </button>
+            {isOrganizer && (
+              <button className={styles.btnPurple} onClick={onOrganizer}>
+                📊 <span className={styles.label}>Dashboard</span>
+              </button>
+            )}
             <button className={styles.btnGhost} onClick={onProfile}>
               👤 <span className={styles.label}>{user.name.split(' ')[0]}</span>
             </button>

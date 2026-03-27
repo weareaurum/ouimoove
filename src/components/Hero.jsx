@@ -1,4 +1,4 @@
-import { CATEGORIES, CITIES } from '../data/events.js'
+import { CATEGORIES, CITIES, CATEGORY_EMOJI } from '../data/events.js'
 import styles from './Hero.module.css'
 
 export function Hero({
@@ -13,10 +13,10 @@ export function Hero({
         Découvrez les <em>meilleurs</em><br />événements
       </h1>
       <p className={styles.sub}>
-        Concerts, festivals, conférences et plus encore —<br />réservez vos billets en quelques secondes.
+        Concerts, festivals, conférences et plus encore —<br />
+        réservez vos billets en quelques secondes.
       </p>
 
-      {/* Search bar */}
       <div className={styles.searchBar}>
         <span>🔍</span>
         <input
@@ -24,42 +24,40 @@ export function Hero({
           type="text"
           placeholder="Rechercher un événement..."
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={(e) => setSearch(e.target.value)}
         />
         <select
           className={styles.searchSelect}
           value={filterCity}
-          onChange={e => setFilterCity(e.target.value)}
+          onChange={(e) => setFilterCity(e.target.value)}
         >
           <option value="">Toutes les villes</option>
-          {CITIES.map(c => <option key={c}>{c}</option>)}
+          {CITIES.map((c) => <option key={c}>{c}</option>)}
         </select>
       </div>
 
-      {/* Category pills */}
       <div className={styles.pills}>
         <button
           className={[styles.pill, filterCategory === '' ? styles.active : ''].join(' ')}
           onClick={() => setFilterCategory('')}
         >✨ Tous</button>
-        {CATEGORIES.map(cat => (
+        {CATEGORIES.map((cat) => (
           <button
             key={cat}
             className={[styles.pill, filterCategory === cat ? styles.active : ''].join(' ')}
             onClick={() => setFilterCategory(cat)}
           >
-            {EMOJI[cat]} {cat}
+            {CATEGORY_EMOJI[cat]} {cat}
           </button>
         ))}
       </div>
 
-      {/* Sort */}
       <div className={styles.sortBar}>
         <span>Trier par :</span>
         <select
           className={styles.sortSelect}
           value={sortBy}
-          onChange={e => setSortBy(e.target.value)}
+          onChange={(e) => setSortBy(e.target.value)}
         >
           <option value="date">Date</option>
           <option value="price-asc">Prix croissant</option>
@@ -69,13 +67,4 @@ export function Hero({
       </div>
     </section>
   )
-}
-
-const EMOJI = {
-  Musique: '🎵',
-  Festival: '🎪',
-  Sport: '⚽',
-  Tech: '💻',
-  Culturel: '🎭',
-  Gastronomie: '🍽️',
 }

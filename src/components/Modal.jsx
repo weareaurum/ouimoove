@@ -4,7 +4,7 @@ import styles from './Modal.module.css'
 export function Modal({ open, onClose, children, size = 'md' }) {
   useEffect(() => {
     if (!open) return
-    const handler = e => { if (e.key === 'Escape') onClose() }
+    const handler = (e) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [open, onClose])
@@ -12,7 +12,7 @@ export function Modal({ open, onClose, children, size = 'md' }) {
   return (
     <div
       className={[styles.overlay, open ? styles.active : ''].join(' ')}
-      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
       <div className={[styles.modal, styles[size]].join(' ')}>
         <button className={styles.close} onClick={onClose} aria-label="Fermer">✕</button>

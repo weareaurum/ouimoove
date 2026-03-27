@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useStore } from './hooks/useStore.js'
 import { useToast } from './hooks/useToast.js'
 import { Navbar } from './components/Navbar.jsx'
@@ -13,69 +13,39 @@ import { MyTicketsModal } from './components/modals/MyTicketsModal.jsx'
 import { FavoritesModal } from './components/modals/FavoritesModal.jsx'
 import { ProfileModal } from './components/modals/ProfileModal.jsx'
 import { OrganizerModal } from './components/modals/OrganizerModal.jsx'
-import { supabase } from './lib/supabase'
 
 function App() {
   const store = useStore()
   const { toasts, toast } = useToast()
 
-  const [modal, setModal] = useState(null)
+  const [modal,           setModal]           = useState(null)
   const [selectedEventId, setSelectedEventId] = useState(null)
-  const [search, setSearch] = useState('')
-  const [filterCity, setFilterCity] = useState('')
-  const [filterCategory, setFilterCategory] = useState('')
-  const [sortBy, setSortBy] = useState('date')
+  const [search,          setSearch]          = useState('')
+  const [filterCity,      setFilterCity]      = useState('')
+  const [filterCategory,  setFilterCategory]  = useState('')
+  const [sortBy,          setSortBy]          = useState('date')
 
-  useEffect(() => {
-    console.log('SUPABASE URL:', import.meta.env.VITE_SUPABASE_URL)
-    console.log('Supabase client:', supabase)
-  }, [])
-
-  const open = (m) => setModal(m)
+  const open  = (m) => setModal(m)
   const close = () => setModal(null)
 
-  const goHome = () => {
-    close()
-    setSelectedEventId(null)
-    setSearch('')
-    setFilterCity('')
-    setFilterCategory('')
-    setSortBy('date')
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
-  const openEvent = (id) => {
-    setSelectedEventId(id)
-    open('event')
-  }
-
   const requireAuth = (then) => {
-    if (!store.user) {
-      open('login')
-      return false
-    }
+    if (!store.user) { open('login'); return false }
     then()
     return true
   }
 
+  const openEvent = (id) => { setSelectedEventId(id); open('event') }
+
   const handleAddToCart = (event, selections) => {
     const ok = store.addToCart(event, selections)
-    if (!ok) {
-      toast('Sélectionnez au moins 1 billet', 'error')
-      return
-    }
+    if (!ok) { toast('Sélectionnez au moins 1 billet', 'error'); return }
     toast('Billets ajoutés au panier !', 'success')
     close()
   }
 
   const handlePurchase = async (method) => {
     const result = await store.purchase(method)
-
-    if (!result) {
-      toast('Paiement impossible. Réessayez.', 'error')
-      return
-    }
-
+    if (!result) { toast('Paiement impossible. Réessayez.', 'error'); return }
     close()
     toast('🎉 Paiement confirmé ! Vos billets sont disponibles.', 'success')
   }
@@ -84,16 +54,8 @@ function App() {
     if (!requireAuth(() => {})) return
     const wasFav = store.favorites.includes(eventId)
     const ok = await store.toggleFavorite(eventId)
-
-    if (!ok) {
-      toast('Impossible de mettre à jour les favoris', 'error')
-      return
-    }
-
-    toast(
-      wasFav ? 'Retiré des favoris' : 'Ajouté aux favoris ❤️',
-      wasFav ? 'info' : 'success'
-    )
+    if (!ok) { toast('Impossible de mettre à jour les favoris', 'error'); return }
+    toast(wasFav ? 'Retiré des favoris' : 'Ajouté aux favoris ❤️', wasFav ? 'info' : 'success')
   }
 
   const selectedEvent = store.events.find((e) => e.id === selectedEventId)
@@ -103,7 +65,7 @@ function App() {
       <Navbar
         user={store.user}
         cartCount={store.cartCount}
-        onHome={goHome}
+        isOrganizer={store.isOrganizer}
         onLogin={() => open('login')}
         onSignup={() => open('signup')}
         onCart={() => open('cart')}
@@ -111,26 +73,21 @@ function App() {
         onFavorites={() => requireAuth(() => open('favorites'))}
         onProfile={() => requireAuth(() => open('profile'))}
         onOrganizer={() => requireAuth(() => open('organizer'))}
-        onLogout={async () => {
-          await store.logout()
-          toast('À bientôt !', 'info')
-        }}
+        onLogout={async () => { await store.logout(); toast('À bientôt !', 'info') }}
       />
 
       <Hero
-        search={search}
-        setSearch={setSearch}
-        filterCity={filterCity}
-        setFilterCity={setFilterCity}
-        filterCategory={filterCategory}
-        setFilterCategory={setFilterCategory}
-        sortBy={sortBy}
-        setSortBy={setSortBy}
+        search={search}           setSearch={setSearch}
+        filterCity={filterCity}   setFilterCity={setFilterCity}
+        filterCategory={filterCategory} setFilterCategory={setFilterCategory}
+        sortBy={sortBy}           setSortBy={setSortBy}
       />
 
       <EventGrid
         events={store.events}
         favorites={store.favorites}
+        loading={store.loading.events}
+        error={store.errors.events}
         search={search}
         filterCity={filterCity}
         filterCategory={filterCategory}
@@ -139,6 +96,7 @@ function App() {
         onToggleFav={handleToggleFav}
       />
 
+      {/* ── Auth ── */}
       <AuthModal
         mode={modal === 'login' ? 'login' : modal === 'signup' ? 'signup' : null}
         onClose={close}
@@ -153,40 +111,40 @@ function App() {
         onSignup={async (name, email, pwd) => {
           const r = await store.signup(name, email, pwd)
           if (!r.ok) return r.error
+          if (r.needsEmailConfirmation) {
+            toast('Vérifiez votre boîte email pour confirmer votre compte.', 'info')
+            close()
+            return null
+          }
           toast('Compte créé ! Bienvenue ' + r.user.name, 'success')
           close()
           return null
         }}
         onGoogle={async () => {
-          try {
-            await store.googleLogin()
-          } catch (error) {
-            toast(error.message || 'Connexion Google impossible', 'error')
-          }
+          try { await store.googleLogin() }
+          catch (e) { toast(e.message || 'Connexion Google impossible', 'error') }
         }}
       />
 
+      {/* ── Event detail ── */}
       <EventDetailModal
         open={modal === 'event'}
         event={selectedEvent}
         onClose={close}
-        onAddToCart={(selections) => {
-          requireAuth(() => handleAddToCart(selectedEvent, selections))
-        }}
+        onAddToCart={(selections) => requireAuth(() => handleAddToCart(selectedEvent, selections))}
       />
 
+      {/* ── Cart ── */}
       <CartModal
         open={modal === 'cart'}
         cart={store.cart}
         cartTotal={store.cartTotal}
         onClose={close}
-        onRemove={(id) => {
-          store.removeFromCart(id)
-          toast('Retiré du panier', 'info')
-        }}
+        onRemove={(id) => { store.removeFromCart(id); toast('Retiré du panier', 'info') }}
         onCheckout={() => open('checkout')}
       />
 
+      {/* ── Checkout ── */}
       <CheckoutModal
         open={modal === 'checkout'}
         cart={store.cart}
@@ -195,6 +153,7 @@ function App() {
         onConfirm={handlePurchase}
       />
 
+      {/* ── My Tickets ── */}
       <MyTicketsModal
         open={modal === 'tickets'}
         purchases={store.myPurchases}
@@ -202,6 +161,7 @@ function App() {
         toast={toast}
       />
 
+      {/* ── Favorites ── */}
       <FavoritesModal
         open={modal === 'favorites'}
         events={store.events}
@@ -211,56 +171,48 @@ function App() {
         onToggleFav={handleToggleFav}
       />
 
+      {/* ── Profile ── */}
       <ProfileModal
         open={modal === 'profile'}
         user={store.user}
         onClose={close}
         onSave={async (name, email, pwd) => {
           const updated = await store.updateProfile(name, email, pwd)
-          if (!updated) {
-            toast('Impossible de mettre à jour le profil', 'error')
-            return
-          }
+          if (!updated) { toast('Impossible de mettre à jour le profil', 'error'); return }
           toast('Profil mis à jour', 'success')
           close()
         }}
-        onLogout={async () => {
-          await store.logout()
-          toast('À bientôt !', 'info')
-          close()
-        }}
+        onLogout={async () => { await store.logout(); toast('À bientôt !', 'info'); close() }}
       />
 
+      {/* ── Organizer Dashboard ── */}
       <OrganizerModal
         open={modal === 'organizer'}
         user={store.user}
         myEvents={store.myEvents}
         purchases={store.purchases}
+        organizerOrders={store.organizerOrders}
+        organizerStats={store.organizerStats}
+        loading={store.loading}
+        errors={store.errors}
         onClose={close}
         onCreate={async (ev) => {
           const created = await store.createEvent(ev)
-          if (!created) {
-            toast("Impossible de publier l'événement", 'error')
-            return
-          }
+          if (!created) { toast("Impossible de publier l'événement", 'error'); return null }
           toast('Événement publié ! 🎉', 'success')
+          return created
         }}
         onDelete={async (id) => {
           const ok = await store.deleteEvent(id)
-          if (!ok) {
-            toast("Impossible de supprimer l'événement", 'error')
-            return
-          }
+          if (!ok) { toast("Impossible de supprimer l'événement", 'error'); return }
           toast('Événement supprimé', 'info')
         }}
         onCheckin={async (purchaseId, eventId) => {
           const ok = await store.checkinPurchase(purchaseId, eventId)
-          if (!ok) {
-            toast('Impossible de valider ce billet', 'error')
-            return
-          }
-          toast('Check-in mis à jour', 'success')
+          if (!ok) { toast('Impossible de valider ce billet', 'error'); return }
+          toast('Check-in mis à jour ✓', 'success')
         }}
+        onRefresh={store.refreshOrganizerData}
         toast={toast}
       />
 

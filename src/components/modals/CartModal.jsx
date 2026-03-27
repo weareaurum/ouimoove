@@ -14,7 +14,7 @@ export function CartModal({ open, cart, cartTotal, onClose, onRemove, onCheckout
         ) : (
           <>
             <div className={styles.list}>
-              {cart.map(item => (
+              {cart.map((item) => (
                 <div key={item.id} className={styles.item}>
                   <div className={styles.info}>
                     <div className={styles.name}>{item.eventTitle}</div>
@@ -27,12 +27,10 @@ export function CartModal({ open, cart, cartTotal, onClose, onRemove, onCheckout
                 </div>
               ))}
             </div>
-
             <div className={styles.totalRow}>
               <span>Total</span>
               <span className={styles.total}>{cartTotal.toLocaleString('fr-FR')} FCFA</span>
             </div>
-
             <button className={styles.checkoutBtn} onClick={onCheckout}>
               Passer à la caisse →
             </button>

@@ -5,13 +5,10 @@ export function formatDate(d) {
 }
 
 export function minPrice(event) {
-  return Math.min(...event.tickets.map(t => t.price))
+  return Math.min(...event.tickets.map((t) => t.price))
 }
 
 export function fmtPrice(n) {
-  return n === 0 ? 'Gratuit' : n.toLocaleString('fr-FR') + ' FCFA'
-}
-
-export function uid() {
-  return Math.random().toString(36).slice(2) + Date.now()
+  if (n === 0) return 'Gratuit'
+  return n.toLocaleString('fr-FR') + ' FCFA'
 }

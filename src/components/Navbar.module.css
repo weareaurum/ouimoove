@@ -15,7 +15,7 @@
 .logo {
   display: flex;
   align-items: center;
-  cursor: pointer;
+  cursor: default;
   user-select: none;
   flex-shrink: 0;
   background: transparent;
@@ -25,10 +25,21 @@
 
 .logo img {
   display: block;
-  height: 200px;
+  height: 44px;
   width: auto;
   object-fit: contain;
 }
+
+.logoText {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.5rem;
+  background: linear-gradient(135deg, var(--orange), var(--purple2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.logoText span { -webkit-text-fill-color: var(--orange); }
 
 .right {
   display: flex;
