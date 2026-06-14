@@ -4,7 +4,7 @@ import styles from './Navbar.module.css'
 export function Navbar({
   user, cartCount, isOrganizer,
   onLogin, onSignup, onCart, onTickets,
-  onFavorites, onProfile, onOrganizer, onLogout, onLogoClick,
+  onFavorites, onProfile, onOrganizer, onLogout, onLogoClick, onMarket,
 }) {
   const [logoErr, setLogoErr] = useState(false)
 
@@ -40,6 +40,9 @@ export function Navbar({
             </button>
             <button className={styles.btnGhost} onClick={onTickets}>
               🎟️ <span className={styles.label}>Mes Billets</span>
+            </button>
+            <button className={styles.btnGhost} onClick={onMarket}>
+              🏪 <span className={styles.label}>Marché</span>
             </button>
             {isOrganizer && (
               <button className={styles.btnPurple} onClick={onOrganizer}>

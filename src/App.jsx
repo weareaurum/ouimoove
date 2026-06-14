@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useStore } from './hooks/useStore.js'
 import { useToast } from './hooks/useToast.js'
 import { Navbar } from './components/Navbar.jsx'
@@ -13,6 +13,7 @@ import { MyTicketsModal } from './components/modals/MyTicketsModal.jsx'
 import { FavoritesModal } from './components/modals/FavoritesModal.jsx'
 import { ProfileModal } from './components/modals/ProfileModal.jsx'
 import { OrganizerModal } from './components/modals/OrganizerModal.jsx'
+import { ResaleMarketModal } from './components/modals/ResaleMarketModal.jsx'
 
 function App() {
   const store = useStore()
@@ -27,6 +28,28 @@ function App() {
 
   const open  = (m) => setModal(m)
   const close = () => setModal(null)
+
+  // ── PayDunya return handling ───────────────────────────────
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+
+    if (params.get('paydunya_return') === '1') {
+      window.history.replaceState({}, '', window.location.pathname)
+      ;(async () => {
+        toast('Vérification du paiement…', 'info')
+        const result = await store.verifyPaydunyaReturn()
+        if (result?.ok) {
+          toast('🎉 Paiement confirmé ! Vos billets sont disponibles.', 'success')
+          open('tickets')
+        } else {
+          toast('Paiement annulé ou échoué.', 'error')
+        }
+      })()
+    } else if (params.get('paydunya_cancel') === '1') {
+      window.history.replaceState({}, '', window.location.pathname)
+      toast('Paiement annulé.', 'info')
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const requireAuth = (then) => {
     if (!store.user) { open('login'); return false }
@@ -46,8 +69,20 @@ function App() {
   const handlePurchase = async (method, phone, discountAmount = 0) => {
     const result = await store.purchase(method, phone, discountAmount)
     if (!result) { toast('Paiement impossible. Réessayez.', 'error'); return }
+    if (result.redirect) {
+      window.location.href = result.redirect
+      return
+    }
     close()
     toast('🎉 Paiement confirmé ! Vos billets sont disponibles.', 'success')
+  }
+
+  const handleToggleFav = async (eventId) => {
+    if (!requireAuth(() => {})) return
+    const wasFav = store.favorites.includes(eventId)
+    const ok = await store.toggleFavorite(eventId)
+    if (!ok) { toast('Impossible de mettre à jour les favoris', 'error'); return }
+    toast(wasFav ? 'Retiré des favoris' : 'Ajouté aux favoris ❤️', wasFav ? 'info' : 'success')
   }
 
   const handleLogoClick = () => {
@@ -58,12 +93,17 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const handleToggleFav = async (eventId) => {
-    if (!requireAuth(() => {})) return
-    const wasFav = store.favorites.includes(eventId)
-    const ok = await store.toggleFavorite(eventId)
-    if (!ok) { toast('Impossible de mettre à jour les favoris', 'error'); return }
-    toast(wasFav ? 'Retiré des favoris' : 'Ajouté aux favoris ❤️', wasFav ? 'info' : 'success')
+  // ── Resale market ──────────────────────────────────────────
+  // My listings (to show "en vente" badge on tickets)
+  const myListings = store.resaleListings.filter(l => l.seller_id === store.user?.id)
+
+  const handleBuyResale = async (listing, method, phone) => {
+    const result = await store.buyResaleListing(listing, method, phone)
+    if (!result) { toast('Achat impossible. Réessayez.', 'error'); return result }
+    if (result.error) { toast(result.error, 'error'); return result }
+    if (result.redirect) { window.location.href = result.redirect; return result }
+    toast('🎉 Billet acheté ! Disponible dans Mes Billets.', 'success')
+    return result
   }
 
   const selectedEvent = store.events.find((e) => e.id === selectedEventId)
@@ -83,6 +123,7 @@ function App() {
         onOrganizer={() => requireAuth(() => open('organizer'))}
         onLogout={async () => { await store.logout(); toast('À bientôt !', 'info') }}
         onLogoClick={handleLogoClick}
+        onMarket={() => open('market')}
       />
 
       <Hero
@@ -166,8 +207,18 @@ function App() {
       <MyTicketsModal
         open={modal === 'tickets'}
         purchases={store.myPurchases}
+        myListings={myListings}
         onClose={close}
         toast={toast}
+        onListForResale={async (params) => {
+          if (!store.user) return null
+          return await store.listTicketForResale(params)
+        }}
+        onCancelListing={async (listingId) => {
+          const ok = await store.cancelResaleListing(listingId)
+          if (ok) toast('Annonce retirée.', 'info')
+          else toast('Impossible de retirer l\'annonce.', 'error')
+        }}
       />
 
       {/* ── Favorites ── */}
@@ -217,7 +268,7 @@ function App() {
         }}
         onUpdate={async (eventId, data) => {
           const ok = await store.updateEvent(eventId, data)
-          if (!ok) { toast("Impossible de mettre à jour l'événement", 'error') }
+          if (!ok) toast("Impossible de mettre à jour l'événement", 'error')
           return ok
         }}
         onDelete={async (id) => {
@@ -248,6 +299,19 @@ function App() {
         }}
         onLoadApplications={store.loadApplications}
         toast={toast}
+      />
+
+      {/* ── Resale Market ── */}
+      <ResaleMarketModal
+        open={modal === 'market'}
+        listings={store.resaleListings}
+        currentUserId={store.user?.id}
+        loading={store.loading.resale}
+        onClose={close}
+        onBuy={async (listing, method, phone) => {
+          if (!store.user) { open('login'); return null }
+          return await handleBuyResale(listing, method, phone)
+        }}
       />
 
       <Toast toasts={toasts} />
