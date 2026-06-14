@@ -9,6 +9,9 @@
   box-shadow: 0 20px 60px rgba(0,0,0,.5), 0 0 0 1px rgba(124,58,237,.2);
 }
 .imgWrap { position: relative; }
+.coverImg {
+  width: 100%; height: 180px; object-fit: cover; display: block;
+}
 .placeholder {
   width: 100%; height: 180px;
   background: linear-gradient(135deg, var(--bg3), var(--bg2));

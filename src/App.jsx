@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useStore } from './hooks/useStore.js'
 import { useToast } from './hooks/useToast.js'
 import { Navbar } from './components/Navbar.jsx'
@@ -43,12 +43,40 @@ function App() {
     close()
   }
 
-  const handlePurchase = async (method) => {
-    const result = await store.purchase(method)
+  const handlePurchase = async (method, phone) => {
+    const result = await store.purchase(method, phone)
     if (!result) { toast('Paiement impossible. Réessayez.', 'error'); return }
+    // Redirect to PayDunya checkout page
+    if (result.redirect) {
+      window.location.href = result.redirect
+      return
+    }
     close()
     toast('🎉 Paiement confirmé ! Vos billets sont disponibles.', 'success')
   }
+
+  // Handle PayDunya return redirect
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('paydunya_return') === '1') {
+      // Clean URL immediately
+      window.history.replaceState({}, '', window.location.pathname)
+      // Wait for user to be loaded before verifying
+      const verify = async () => {
+        const result = await store.verifyPaydunyaReturn()
+        if (result?.ok) {
+          toast('🎉 Paiement confirmé ! Vos billets sont disponibles.', 'success')
+        } else if (result?.cancelled) {
+          toast('Paiement annulé ou échoué.', 'error')
+        }
+      }
+      verify()
+    } else if (params.get('paydunya_cancel') === '1') {
+      window.history.replaceState({}, '', window.location.pathname)
+      toast('Paiement annulé.', 'info')
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleToggleFav = async (eventId) => {
     if (!requireAuth(() => {})) return
@@ -175,6 +203,7 @@ function App() {
       <ProfileModal
         open={modal === 'profile'}
         user={store.user}
+        isOrganizer={store.isOrganizer}
         onClose={close}
         onSave={async (name, email, pwd) => {
           const updated = await store.updateProfile(name, email, pwd)
@@ -183,16 +212,19 @@ function App() {
           close()
         }}
         onLogout={async () => { await store.logout(); toast('À bientôt !', 'info'); close() }}
+        onApply={store.applyForOrganizer}
       />
 
       {/* ── Organizer Dashboard ── */}
       <OrganizerModal
         open={modal === 'organizer'}
         user={store.user}
+        isAdmin={store.isAdmin}
         myEvents={store.myEvents}
         purchases={store.purchases}
         organizerOrders={store.organizerOrders}
         organizerStats={store.organizerStats}
+        applications={store.applications}
         loading={store.loading}
         errors={store.errors}
         onClose={close}
@@ -213,6 +245,17 @@ function App() {
           toast('Check-in mis à jour ✓', 'success')
         }}
         onRefresh={store.refreshOrganizerData}
+        onPromote={async (userId, appId) => {
+          const ok = await store.promoteToOrganizer(userId, appId)
+          if (!ok) { toast('Impossible de promouvoir cet utilisateur', 'error'); return }
+          toast('Utilisateur promu organisateur ✓', 'success')
+        }}
+        onReject={async (appId) => {
+          const ok = await store.rejectApplication(appId)
+          if (!ok) { toast('Impossible de refuser la demande', 'error'); return }
+          toast('Demande refusée', 'info')
+        }}
+        onLoadApplications={store.loadApplications}
         toast={toast}
       />
 

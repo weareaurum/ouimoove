@@ -7,7 +7,15 @@ export function EventCard({ event, isFav, onOpen, onToggleFav }) {
   return (
     <article className={styles.card} onClick={() => onOpen(event.id)}>
       <div className={styles.imgWrap}>
-        <div className={styles.placeholder}>{event.emoji || '🎉'}</div>
+        {event.imageUrl ? (
+          <img
+            src={event.imageUrl}
+            alt={event.title}
+            className={styles.coverImg}
+            onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'flex' }}
+          />
+        ) : null}
+        <div className={styles.placeholder} style={event.imageUrl ? { display: 'none' } : {}}>{event.emoji || '🎉'}</div>
         <span className={styles.badge}>{event.category}</span>
         <button
           className={[styles.favBtn, isFav ? styles.favActive : ''].join(' ')}

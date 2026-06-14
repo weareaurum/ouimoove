@@ -6,17 +6,18 @@ import { supabase } from '../lib/supabase.js'
 function shapeEvent(event) {
   const d = new Date(event.event_date)
   return {
-    id:       event.id,
-    title:    event.title,
-    category: event.category || '',
-    date:     d.toISOString().slice(0, 10),
-    time:     d.toISOString().slice(11, 16),
-    location: event.venue || '',
-    city:     event.city  || '',
-    desc:     event.description || '',
-    emoji:    event.emoji || '🎟️',
-    status:   event.status,
-    tickets:  (event.ticket_types || []).map((t) => ({
+    id:        event.id,
+    title:     event.title,
+    category:  event.category || '',
+    date:      d.toISOString().slice(0, 10),
+    time:      d.toISOString().slice(11, 16),
+    location:  event.venue || '',
+    city:      event.city  || '',
+    desc:      event.description || '',
+    emoji:     event.emoji || '🎟️',
+    imageUrl:  event.image_url || null,
+    status:    event.status,
+    tickets:   (event.ticket_types || []).map((t) => ({
       id:    t.id,
       name:  t.name,
       price: t.price_cfa,
@@ -27,7 +28,7 @@ function shapeEvent(event) {
   }
 }
 
-function shapeMyOrder(order, eventsRef) {
+function shapeMyOrder(order, eventsRef, userName = '') {
   const items = (order.order_items || []).map((item) => {
     const ev = eventsRef.find((e) => e.id === item.event_id)
     const tk = ev?.tickets.find((t) => t.id === item.ticket_type_id)
@@ -44,7 +45,7 @@ function shapeMyOrder(order, eventsRef) {
   return {
     id:       order.id,
     userId:   order.user_id,
-    userName: '',
+    userName: userName,
     date:     order.created_at,
     items,
     total:    order.total_cfa,
@@ -65,6 +66,7 @@ export function useStore() {
   const [organizerOrders, setOrganizerOrders] = useState([])
   const [organizerStats,  setOrganizerStats]  = useState(null)
   const [favorites,       setFavoritesState]  = useState([])
+  const [applications,    setApplications]    = useState([])
 
   // Granular loading + error state
   const [loading, setLoading] = useState({
@@ -91,7 +93,7 @@ export function useStore() {
       .from('events')
       .select(`
         id, title, description, city, venue, category,
-        event_date, emoji, status, organizer_id,
+        event_date, emoji, image_url, status, organizer_id,
         ticket_types (id, name, price_cfa, quantity_total, quantity_sold)
       `)
       .eq('status', 'published')
@@ -135,7 +137,7 @@ export function useStore() {
   }, [])
 
   // ── LOAD MY ORDERS ─────────────────────────────────────────
-  const loadMyOrders = useCallback(async (userId, eventsData) => {
+  const loadMyOrders = useCallback(async (userId, eventsData, userName = '') => {
     if (!userId) return
     setLoad('orders', true)
     setErr('orders', null)
@@ -158,7 +160,7 @@ export function useStore() {
     }
 
     const src = eventsData || events
-    setMyOrders((data || []).map((o) => shapeMyOrder(o, src)))
+    setMyOrders((data || []).map((o) => shapeMyOrder(o, src, userName)))
   }, [events])
 
   // ── LOAD ORGANIZER ORDERS (real attendee names + emails) ───
@@ -284,6 +286,7 @@ export function useStore() {
         setMyOrders([])
         setOrganizerOrders([])
         setOrganizerStats(null)
+        setApplications([])
       }
     })
 
@@ -293,10 +296,13 @@ export function useStore() {
   // Load user-specific data once we have both user + events
   useEffect(() => {
     if (!user?.id || events.length === 0) return
-    loadMyOrders(user.id, events)
+    loadMyOrders(user.id, events, user.name)
     loadOrganizerOrders(user.id, events)
     if (userRole === 'organizer' || userRole === 'admin') {
       loadOrganizerStats(user.id)
+    }
+    if (userRole === 'admin') {
+      loadApplications()
     }
   }, [user?.id, userRole, events.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -344,7 +350,7 @@ export function useStore() {
   const googleLogin = useCallback(async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: window.location.origin },
     })
     if (error) throw error
   }, [])
@@ -357,6 +363,7 @@ export function useStore() {
     setMyOrders([])
     setOrganizerOrders([])
     setOrganizerStats(null)
+    setApplications([])
   }, [])
 
   const updateProfile = useCallback(async (name, email, pwd) => {
@@ -419,42 +426,82 @@ export function useStore() {
   const clearCart = useCallback(() => setCart([]), [setCart])
 
   // ── PURCHASE ───────────────────────────────────────────────
-  const purchase = useCallback(async (method) => {
+  const purchase = useCallback(async (method, phone = '') => {
     if (!user || !cart.length) return null
 
     const total = cart.reduce((s, i) => s + i.price * i.qty, 0)
+    const returnUrl = `${window.location.origin}/?paydunya_return=1`
+    const cancelUrl = `${window.location.origin}/?paydunya_cancel=1`
 
-    // Create order
-    const { data: orderData, error: orderError } = await supabase
+    // Call PayDunya edge function to create invoice
+    const { data: pdData, error: pdError } = await supabase.functions.invoke('create-paydunya-payment', {
+      body: { cart, total, userId: user.id, returnUrl, cancelUrl, method, phone },
+    })
+
+    if (pdError || pdData?.response_code !== '00') {
+      console.error('PayDunya create error:', pdError || pdData)
+      return null
+    }
+
+    // Pre-create pending order using pre-generated UUID (avoids RLS RETURNING issue)
+    const orderId = crypto.randomUUID()
+    const { error: orderError } = await supabase
       .from('orders')
       .insert({
+        id:             orderId,
         user_id:        user.id,
         total_cfa:      total,
         payment_method: method,
-        payment_status: 'paid',
+        payment_status: 'pending',
+        paydunya_token: pdData.token,
       })
-      .select()
-      .single()
 
     if (orderError) { console.error('purchase order:', orderError); return null }
 
-    // Create order items
-    const orderItems = cart.map((item) => ({
-      order_id:       orderData.id,
+    // Store pending context for when user returns from PayDunya
+    sessionStorage.setItem('om_pending_order', JSON.stringify({
+      orderId, token: pdData.token, cart: [...cart], total, userId: user.id,
+    }))
+
+    // Return redirect URL — App.jsx handles the redirect
+    return { redirect: pdData.description }
+  }, [user, cart])
+
+  // ── VERIFY PAYDUNYA RETURN ─────────────────────────────────
+  const verifyPaydunyaReturn = useCallback(async () => {
+    const raw = sessionStorage.getItem('om_pending_order')
+    if (!raw) return { cancelled: true }
+
+    const { orderId, token, cart: pendingCart, userId: pendingUserId } = JSON.parse(raw)
+    sessionStorage.removeItem('om_pending_order')
+
+    // Verify payment with PayDunya
+    const { data: verifyData, error: verifyError } = await supabase.functions.invoke('verify-paydunya-payment', {
+      body: { token },
+    })
+
+    if (verifyError || verifyData?.status !== 'completed') {
+      // Payment failed / cancelled — delete pending order
+      await supabase.from('orders').delete().eq('id', orderId)
+      return { cancelled: true }
+    }
+
+    // Payment confirmed — create order items
+    const orderItems = pendingCart.map((item) => ({
+      order_id:       orderId,
       event_id:       item.eventId,
       ticket_type_id: item.ticketTypeId,
       quantity:       item.qty,
       unit_price_cfa: item.price,
     }))
 
-    const { error: itemsError } = await supabase
-      .from('order_items')
-      .insert(orderItems)
+    await supabase.from('order_items').insert(orderItems)
 
-    if (itemsError) { console.error('purchase items:', itemsError); return null }
+    // Update order status to paid
+    await supabase.from('orders').update({ payment_status: 'paid' }).eq('id', orderId)
 
     // Update ticket sold counts
-    for (const item of cart) {
+    for (const item of pendingCart) {
       const ev = events.find((e) => e.id === item.eventId)
       const tk = ev?.tickets.find((t) => t.id === item.ticketTypeId)
       if (!tk) continue
@@ -464,28 +511,14 @@ export function useStore() {
         .eq('id', item.ticketTypeId)
     }
 
-    const purchasedCart = [...cart]
     clearCart()
-
-    // Refresh data
     const freshEvents = await loadEvents()
-    await loadMyOrders(user.id, freshEvents)
-    if (userRole === 'organizer' || userRole === 'admin') {
-      await loadOrganizerOrders(user.id, freshEvents)
-      await loadOrganizerStats(user.id)
-    }
+    const uid = pendingUserId || user?.id
+    const uname = user?.name || ''
+    if (uid) await loadMyOrders(uid, freshEvents, uname)
 
-    return {
-      id:       orderData.id,
-      userId:   user.id,
-      userName: user.name,
-      date:     orderData.created_at,
-      items:    purchasedCart,
-      total,
-      method,
-      status:   'paid',
-    }
-  }, [user, cart, events, userRole, clearCart, loadEvents, loadMyOrders, loadOrganizerOrders, loadOrganizerStats])
+    return { ok: true }
+  }, [user, events, clearCart, loadEvents, loadMyOrders])
 
   // ── FAVORITES ──────────────────────────────────────────────
   const toggleFavorite = useCallback(async (eventId) => {
@@ -527,6 +560,7 @@ export function useStore() {
         category:     ev.category || '',
         event_date:   `${ev.date}T${ev.time || '20:00'}:00`,
         emoji:        ev.emoji || '🎟️',
+        image_url:    ev.imageUrl || null,
         status:       'published',
       })
       .select()
@@ -597,18 +631,63 @@ export function useStore() {
     // Refresh organizer orders to show updated state
     await loadOrganizerOrders(user?.id)
     // Also refresh my orders so the buyer sees updated state
-    await loadMyOrders(user?.id)
+    await loadMyOrders(user?.id, undefined, user?.name)
     return true
   }, [organizerOrders, user, loadOrganizerOrders, loadMyOrders])
 
+  // ── ADMIN: load organizer applications ────────────────────
+  const loadApplications = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('organizer_applications')
+      .select(`
+        id, user_id, reason, status, created_at,
+        profiles:user_id (full_name, email)
+      `)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+    if (error) { console.error('loadApplications:', error); return }
+    setApplications(
+      (data || []).map((a) => ({
+        id:        a.id,
+        userId:    a.user_id,
+        userName:  a.profiles?.full_name || a.profiles?.email || 'Inconnu',
+        userEmail: a.profiles?.email || '',
+        reason:    a.reason,
+        status:    a.status,
+        date:      a.created_at,
+      }))
+    )
+  }, [])
+
   // ── ADMIN: promote a user to organizer ────────────────────
-  const promoteToOrganizer = useCallback(async (targetUserId) => {
+  const promoteToOrganizer = useCallback(async (targetUserId, applicationId) => {
     const { error } = await supabase.rpc('promote_to_organizer', {
       target_user_id: targetUserId,
     })
     if (error) { console.error('promoteToOrganizer:', error); return false }
+
+    // Mark application as approved
+    if (applicationId) {
+      await supabase
+        .from('organizer_applications')
+        .update({ status: 'approved', reviewed_at: new Date().toISOString(), reviewed_by: user?.id })
+        .eq('id', applicationId)
+    }
+
+    await loadApplications()
     return true
-  }, [])
+  }, [user, loadApplications])
+
+  // ── ADMIN: reject an application ──────────────────────────
+  const rejectApplication = useCallback(async (applicationId) => {
+    const { error } = await supabase
+      .from('organizer_applications')
+      .update({ status: 'rejected', reviewed_at: new Date().toISOString(), reviewed_by: user?.id })
+      .eq('id', applicationId)
+    if (error) { console.error('rejectApplication:', error); return false }
+    await loadApplications()
+    return true
+  }, [user, loadApplications])
 
   // ── REFRESH ────────────────────────────────────────────────
   const refreshOrganizerData = useCallback(async () => {
@@ -646,6 +725,7 @@ export function useStore() {
 
     // purchase
     purchase,
+    verifyPaydunyaReturn,
 
     // favorites
     toggleFavorite,
@@ -657,7 +737,10 @@ export function useStore() {
     checkinPurchase,
 
     // admin
+    applications,
+    loadApplications,
     promoteToOrganizer,
+    rejectApplication,
 
     // refresh
     refreshOrganizerData,

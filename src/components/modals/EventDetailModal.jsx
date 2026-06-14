@@ -26,7 +26,15 @@ export function EventDetailModal({ open, event, onClose, onAddToCart }) {
   return (
     <Modal open={open} onClose={onClose} size="lg">
       <ModalBody>
-        <div className={styles.imgPlaceholder}>{event.emoji || '🎉'}</div>
+        {event.imageUrl ? (
+          <img
+            src={event.imageUrl}
+            alt={event.title}
+            className={styles.coverImg}
+            onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'flex' }}
+          />
+        ) : null}
+        <div className={styles.imgPlaceholder} style={event.imageUrl ? { display: 'none' } : {}}>{event.emoji || '🎉'}</div>
 
         <div className={styles.categoryBadge}>{event.category}</div>
         <h2 className={styles.title}>{event.title}</h2>

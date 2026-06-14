@@ -2,14 +2,15 @@ import { useState } from 'react'
 import { Modal, ModalHeader, ModalBody } from '../Modal.jsx'
 import { CATEGORIES, CITIES } from '../../data/events.js'
 import { formatDate } from '../../utils/helpers.js'
-import styles from './OrganizerModal.module.css'
+// Note: OrganizerModal uses inline styles only — no CSS module needed
 
-const TABS = [
+const BASE_TABS = [
   { id: 'overview',   label: "Vue d'ensemble" },
   { id: 'events',     label: 'Mes Événements' },
   { id: 'create',     label: 'Créer' },
   { id: 'attendees',  label: 'Participants' },
 ]
+const ADMIN_TAB = { id: 'admin', label: '🔑 Admin' }
 
 // ── Spinner ───────────────────────────────────────────────────
 function Spinner() {
@@ -171,6 +172,7 @@ function CreateTab({ onCreate, toast }) {
   const [city,        setCity]        = useState(CITIES[0])
   const [desc,        setDesc]        = useState('')
   const [emoji,       setEmoji]       = useState('')
+  const [imageUrl,    setImageUrl]    = useState('')
   const [ticketTypes, setTicketTypes] = useState([{ name: '', price: '', qty: '100' }])
   const [error,       setError]       = useState('')
   const [loading,     setLoading]     = useState(false)
@@ -191,13 +193,13 @@ function CreateTab({ onCreate, toast }) {
 
     setError('')
     setLoading(true)
-    const created = await onCreate({ title: title.trim(), category, date, time, location: location.trim(), city, desc: desc.trim(), emoji: emoji || '🎟️', tickets })
+    const created = await onCreate({ title: title.trim(), category, date, time, location: location.trim(), city, desc: desc.trim(), emoji: emoji || '🎟️', imageUrl: imageUrl.trim() || null, tickets })
     setLoading(false)
 
     if (!created) { setError("Impossible de publier l'événement. Réessayez."); return }
 
     // Reset
-    setTitle(''); setDate(''); setLocation(''); setDesc(''); setEmoji('')
+    setTitle(''); setDate(''); setLocation(''); setDesc(''); setEmoji(''); setImageUrl('')
     setTicketTypes([{ name: '', price: '', qty: '100' }])
   }
 
@@ -256,6 +258,19 @@ function CreateTab({ onCreate, toast }) {
       <div style={groupStyle}>
         <label style={labelStyle}>Description</label>
         <textarea style={{ ...inputStyle, resize: 'vertical' }} rows={3} placeholder="Décrivez votre événement…" value={desc} onChange={(e) => setDesc(e.target.value)} />
+      </div>
+
+      <div style={groupStyle}>
+        <label style={labelStyle}>Image de couverture <span style={{ color: 'var(--muted)', fontStyle: 'italic' }}>(URL, optionnel)</span></label>
+        <input style={inputStyle} type="url" placeholder="https://example.com/image.jpg" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
+        {imageUrl && (
+          <img
+            src={imageUrl}
+            alt="Aperçu"
+            style={{ marginTop: 8, width: '100%', height: 120, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border)' }}
+            onError={(e) => { e.currentTarget.style.display = 'none' }}
+          />
+        )}
       </div>
 
       <p style={{ fontSize: '0.82rem', color: 'var(--muted)', marginBottom: 8, fontWeight: 500 }}>Types de billets</p>
@@ -420,10 +435,86 @@ function AttendeesTab({ myEvents, organizerOrders, onCheckin, loading, errors, o
   )
 }
 
+// ── Admin Tab ─────────────────────────────────────────────────
+function AdminTab({ applications, onPromote, onReject, onRefresh }) {
+  const [busy, setBusy] = useState({})
+
+  const act = async (id, fn) => {
+    setBusy((b) => ({ ...b, [id]: true }))
+    await fn()
+    setBusy((b) => ({ ...b, [id]: false }))
+  }
+
+  if (!applications?.length) {
+    return (
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <p style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>Aucune demande en attente.</p>
+          <button onClick={onRefresh} style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 12px', color: 'var(--muted)', cursor: 'pointer', fontSize: '0.78rem' }}>
+            ↻ Actualiser
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+        <p style={{ color: 'var(--muted)', fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
+          {applications.length} demande{applications.length > 1 ? 's' : ''} en attente
+        </p>
+        <button onClick={onRefresh} style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 12px', color: 'var(--muted)', cursor: 'pointer', fontSize: '0.78rem' }}>
+          ↻ Actualiser
+        </button>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {applications.map((a) => (
+          <div key={a.id} style={{
+            background: 'var(--bg3)', border: '1px solid var(--border)',
+            borderRadius: 12, padding: '14px 16px',
+          }}>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{a.userName}</div>
+                <div style={{ color: 'var(--muted)', fontSize: '0.75rem', marginTop: 2 }}>{a.userEmail}</div>
+                <div style={{ color: 'var(--muted)', fontSize: '0.75rem', marginTop: 2 }}>{new Date(a.date).toLocaleDateString('fr-FR')}</div>
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                <button
+                  disabled={busy[a.id]}
+                  onClick={() => act(a.id, () => onReject(a.id))}
+                  style={{ padding: '5px 12px', borderRadius: 8, border: '1px solid rgba(239,68,68,.4)', background: 'rgba(239,68,68,.1)', color: 'var(--danger)', cursor: 'pointer', fontSize: '0.78rem', opacity: busy[a.id] ? 0.5 : 1 }}
+                >
+                  Refuser
+                </button>
+                <button
+                  disabled={busy[a.id]}
+                  onClick={() => act(a.id, () => onPromote(a.userId, a.id))}
+                  style={{ padding: '5px 12px', borderRadius: 8, border: '1px solid rgba(34,197,94,.4)', background: 'rgba(34,197,94,.12)', color: 'var(--success)', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600, opacity: busy[a.id] ? 0.5 : 1 }}
+                >
+                  {busy[a.id] ? '…' : '✓ Approuver'}
+                </button>
+              </div>
+            </div>
+            {a.reason && (
+              <p style={{ marginTop: 10, fontSize: '0.82rem', color: 'var(--text)', background: 'var(--bg2)', borderRadius: 8, padding: '8px 12px', lineHeight: 1.5 }}>
+                "{a.reason}"
+              </p>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ── Main Modal ────────────────────────────────────────────────
 export function OrganizerModal({
-  open, user, myEvents, purchases, organizerOrders, organizerStats,
+  open, user, isAdmin, myEvents, purchases, organizerOrders, organizerStats,
+  applications,
   onClose, onCreate, onDelete, onCheckin, onRefresh,
+  onPromote, onReject, onLoadApplications,
   loading = {}, errors = {},
   toast,
 }) {
@@ -431,6 +522,7 @@ export function OrganizerModal({
 
   if (!user) return null
 
+  const tabs = isAdmin ? [...BASE_TABS, ADMIN_TAB] : BASE_TABS
   // Use organizerOrders if provided (has real attendee data), fallback to purchases
   const attendeeOrders = organizerOrders || purchases || []
 
@@ -446,7 +538,7 @@ export function OrganizerModal({
           display: 'flex', gap: 4, background: 'var(--bg3)',
           borderRadius: 12, padding: 4, marginBottom: 22, flexWrap: 'wrap',
         }}>
-          {TABS.map((t) => (
+          {tabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
@@ -460,6 +552,11 @@ export function OrganizerModal({
               }}
             >
               {t.label}
+              {t.id === 'admin' && applications?.length > 0 && (
+                <span style={{ marginLeft: 5, background: 'var(--orange)', color: '#fff', borderRadius: 99, padding: '0 6px', fontSize: '0.7rem', fontWeight: 700 }}>
+                  {applications.length}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -487,6 +584,14 @@ export function OrganizerModal({
             onCheckin={onCheckin}
             loading={loading} errors={errors}
             onRefresh={onRefresh}
+          />
+        )}
+        {tab === 'admin' && isAdmin && (
+          <AdminTab
+            applications={applications || []}
+            onPromote={onPromote}
+            onReject={onReject}
+            onRefresh={onLoadApplications}
           />
         )}
       </ModalBody>
