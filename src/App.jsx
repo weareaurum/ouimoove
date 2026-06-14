@@ -29,6 +29,13 @@ function App() {
   const open  = (m) => setModal(m)
   const close = () => setModal(null)
 
+  // ── Service worker registration ────────────────────────────
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(console.error)
+    }
+  }, [])
+
   // ── PayDunya return handling ───────────────────────────────
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -245,6 +252,16 @@ function App() {
         }}
         onLogout={async () => { await store.logout(); toast('À bientôt !', 'info'); close() }}
         onApply={store.applyForOrganizer}
+        onSubscribePush={async () => {
+          const ok = await store.subscribePush()
+          if (ok) toast('Notifications activées 🔔', 'success')
+          else toast('Notifications non disponibles', 'error')
+          return ok
+        }}
+        onUnsubscribePush={async () => {
+          await store.unsubscribePush()
+          toast('Notifications désactivées', 'info')
+        }}
       />
 
       {/* ── Organizer Dashboard ── */}
@@ -298,6 +315,7 @@ function App() {
           toast('Demande refusée', 'info')
         }}
         onLoadApplications={store.loadApplications}
+        onUploadImage={store.uploadEventImage}
         toast={toast}
       />
 

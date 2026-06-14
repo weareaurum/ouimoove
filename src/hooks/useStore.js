@@ -498,6 +498,18 @@ export function useStore() {
     clearCart()
     const freshEvents = await loadEvents()
     await loadMyOrders(user.id, freshEvents, user.name)
+
+    // Email + push — fire-and-forget
+    const cartSnap = [...cart]
+    if (user.email) {
+      supabase.functions.invoke('send-ticket-email', { body: { to: user.email, userName: user.name, orderId, items: cartSnap.map(i => ({ eventTitle: i.eventTitle, ticketName: i.ticketName, price: i.price, qty: i.qty })), total, method } }).catch(console.error)
+    }
+    supabase.from('push_subscriptions').select('endpoint,p256dh,auth_key').eq('user_id', user.id).then(({ data: subs }) => {
+      for (const s of subs ?? []) {
+        supabase.functions.invoke('send-push', { body: { subscription: { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth_key } }, title: '🎉 Paiement confirmé !', body: `Vos ${cartSnap.reduce((n,i)=>n+i.qty,0)} billet(s) sont prêts.`, url: window.location.origin } }).catch(console.error)
+      }
+    })
+
     return { ok: true }
   }, [user, cart, events, clearCart, loadEvents, loadMyOrders])
 
@@ -568,6 +580,18 @@ export function useStore() {
     const uid = pending.userId || user?.id
     if (uid) await loadMyOrders(uid, freshEvents, user?.name || '')
     await loadResaleListings()
+
+    // Email + push after PayDunya verify — fire-and-forget
+    if (pending.type !== 'resale' && user?.email) {
+      supabase.functions.invoke('send-ticket-email', { body: { to: user.email, userName: user.name, orderId: pending.orderId, items: (pending.cart || []).map(i => ({ eventTitle: i.eventTitle, ticketName: i.ticketName, price: i.price, qty: i.qty })), total: pending.total, method: 'paydunya' } }).catch(console.error)
+    }
+    if (uid) {
+      supabase.from('push_subscriptions').select('endpoint,p256dh,auth_key').eq('user_id', uid).then(({ data: subs }) => {
+        for (const s of subs ?? []) {
+          supabase.functions.invoke('send-push', { body: { subscription: { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth_key } }, title: '🎉 Paiement confirmé !', body: `Vos billets sont prêts.`, url: window.location.origin } }).catch(console.error)
+        }
+      })
+    }
 
     return { ok: true }
   }, [user, events, loadEvents, loadMyOrders, loadResaleListings])
@@ -904,6 +928,58 @@ export function useStore() {
     return true
   }, [user, loadApplications])
 
+  // ── UPLOAD EVENT IMAGE ─────────────────────────────────────
+  const uploadEventImage = useCallback(async (file) => {
+    if (!user?.id || !file) return null
+    const ext  = file.name.split('.').pop().toLowerCase()
+    const path = `${user.id}/${Date.now()}.${ext}`
+    const { error } = await supabase.storage
+      .from('event-images')
+      .upload(path, file, { upsert: true, contentType: file.type })
+    if (error) { console.error('uploadEventImage:', error); return null }
+    const { data: { publicUrl } } = supabase.storage.from('event-images').getPublicUrl(path)
+    return publicUrl
+  }, [user])
+
+  // ── PUSH SUBSCRIPTIONS ─────────────────────────────────────
+  const VAPID_PUBLIC = import.meta.env.VITE_VAPID_PUBLIC_KEY ?? ''
+
+  const subscribePush = useCallback(async () => {
+    if (!user?.id || !VAPID_PUBLIC) return false
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false
+    try {
+      const reg = await navigator.serviceWorker.ready
+      let sub   = await reg.pushManager.getSubscription()
+      if (!sub) {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly:      true,
+          applicationServerKey: VAPID_PUBLIC,
+        })
+      }
+      const j = sub.toJSON()
+      const { error } = await supabase.from('push_subscriptions').upsert({
+        user_id:  user.id,
+        endpoint: j.endpoint,
+        p256dh:   j.keys.p256dh,
+        auth_key: j.keys.auth,
+      }, { onConflict: 'user_id,endpoint' })
+      return !error
+    } catch (e) { console.error('subscribePush:', e); return false }
+  }, [user, VAPID_PUBLIC])
+
+  const unsubscribePush = useCallback(async () => {
+    if (!user?.id || !('serviceWorker' in navigator)) return
+    try {
+      const reg = await navigator.serviceWorker.ready
+      const sub = await reg.pushManager.getSubscription()
+      if (sub) {
+        await sub.unsubscribe()
+        await supabase.from('push_subscriptions').delete()
+          .eq('user_id', user.id).eq('endpoint', sub.endpoint)
+      }
+    } catch (e) { console.error('unsubscribePush:', e) }
+  }, [user])
+
   // ── REFRESH ────────────────────────────────────────────────
   const refreshOrganizerData = useCallback(async () => {
     if (!user?.id) return
@@ -954,6 +1030,10 @@ export function useStore() {
     loadApplications,
     promoteToOrganizer,
     rejectApplication,
+
+    uploadEventImage,
+    subscribePush,
+    unsubscribePush,
 
     refreshOrganizerData,
     loadEvents,

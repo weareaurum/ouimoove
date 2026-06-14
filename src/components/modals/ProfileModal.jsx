@@ -2,14 +2,19 @@ import { useState, useEffect } from 'react'
 import { Modal, ModalHeader, ModalBody } from '../Modal.jsx'
 import styles from './ProfileModal.module.css'
 
-export function ProfileModal({ open, user, isOrganizer, onClose, onSave, onLogout, onApply }) {
+export function ProfileModal({ open, user, isOrganizer, onClose, onSave, onLogout, onApply, onSubscribePush, onUnsubscribePush }) {
   const [name, setName]         = useState('')
   const [email, setEmail]       = useState('')
   const [pwd, setPwd]           = useState('')
   const [error, setError]       = useState('')
   const [applyReason, setApplyReason] = useState('')
-  const [applyStatus, setApplyStatus] = useState(null) // null | 'loading' | 'ok' | 'error'
+  const [applyStatus, setApplyStatus] = useState(null)
   const [applyMsg, setApplyMsg] = useState('')
+  const [pushState, setPushState] = useState('unknown') // 'unknown'|'granted'|'denied'|'loading'
+
+  useEffect(() => {
+    if ('Notification' in window) setPushState(Notification.permission)
+  }, [open])
 
   useEffect(() => {
     if (user) {
@@ -125,6 +130,41 @@ export function ProfileModal({ open, user, isOrganizer, onClose, onSave, onLogou
                 </button>
               </>
             )}
+          </div>
+        )}
+
+        {/* Push notifications toggle */}
+        {'Notification' in window && pushState !== 'denied' && (
+          <div style={{ marginTop: 20, paddingTop: 18, borderTop: '1px solid var(--border)' }}>
+            <p style={{ fontWeight: 700, fontSize: '0.88rem', marginBottom: 6 }}>🔔 Notifications push</p>
+            <p style={{ color: 'var(--muted)', fontSize: '0.78rem', marginBottom: 10 }}>
+              {pushState === 'granted'
+                ? 'Vous recevez des notifications pour vos achats et événements.'
+                : 'Activez les notifications pour recevoir vos confirmations de billets.'}
+            </p>
+            <button
+              disabled={pushState === 'loading'}
+              onClick={async () => {
+                if (pushState === 'granted') {
+                  setPushState('loading')
+                  await onUnsubscribePush?.()
+                  setPushState('default')
+                } else {
+                  setPushState('loading')
+                  const ok = await onSubscribePush?.()
+                  setPushState(ok ? 'granted' : (Notification.permission === 'denied' ? 'denied' : 'default'))
+                }
+              }}
+              style={{
+                width: '100%', border: '1px solid var(--border)', borderRadius: 10, padding: '9px 0',
+                fontSize: '0.85rem', fontWeight: 600, cursor: pushState === 'loading' ? 'not-allowed' : 'pointer',
+                background: pushState === 'granted' ? 'rgba(239,68,68,.1)' : 'linear-gradient(135deg,var(--purple),var(--purple2))',
+                color: pushState === 'granted' ? 'var(--danger)' : '#fff',
+                opacity: pushState === 'loading' ? 0.6 : 1,
+              }}
+            >
+              {pushState === 'loading' ? '…' : pushState === 'granted' ? '🔕 Désactiver les notifications' : '🔔 Activer les notifications'}
+            </button>
           </div>
         )}
 

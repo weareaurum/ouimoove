@@ -217,7 +217,7 @@ const labelStyle = { display: 'block', fontSize: '0.82rem', color: 'var(--muted)
 const groupStyle = { marginBottom: 14 }
 
 // ── Event Form (shared by Create and Edit) ────────────────────
-function EventForm({ initial, submitLabel, onSubmit, onCancel, toast }) {
+function EventForm({ initial, submitLabel, onSubmit, onCancel, onUploadImage, toast }) {
   const [title,       setTitle]       = useState(initial?.title       || '')
   const [category,    setCategory]    = useState(initial?.category    || CATEGORIES[0])
   const [date,        setDate]        = useState(initial?.date        || '')
@@ -300,8 +300,23 @@ function EventForm({ initial, submitLabel, onSubmit, onCancel, toast }) {
       </div>
 
       <div style={groupStyle}>
-        <label style={labelStyle}>Image de couverture <span style={{ color: 'var(--muted)', fontStyle: 'italic' }}>(URL, optionnel)</span></label>
-        <input style={inputStyle} type="url" placeholder="https://example.com/image.jpg" value={imageUrl} onChange={e => setImageUrl(e.target.value)} />
+        <label style={labelStyle}>Image de couverture</label>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <input style={{ ...inputStyle, flex: 1 }} type="url" placeholder="https://example.com/image.jpg" value={imageUrl} onChange={e => setImageUrl(e.target.value)} />
+          {onUploadImage && (
+            <label style={{ flexShrink: 0, background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 10, padding: '8px 14px', cursor: 'pointer', fontSize: '0.82rem', color: 'var(--muted)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}>
+              📁 Fichier
+              <input type="file" accept="image/*" style={{ display: 'none' }} onChange={async (e) => {
+                const file = e.target.files?.[0]
+                if (!file) return
+                toast?.('Téléchargement…', 'info')
+                const url = await onUploadImage(file)
+                if (url) { setImageUrl(url); toast?.('Image téléchargée ✓', 'success') }
+                else toast?.('Erreur lors du téléchargement', 'error')
+              }} />
+            </label>
+          )}
+        </div>
         {imageUrl && (
           <img src={imageUrl} alt="Aperçu"
             style={{ marginTop: 8, width: '100%', height: 120, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border)' }}
@@ -547,7 +562,7 @@ export function OrganizerModal({
   open, user, isAdmin, myEvents, purchases, organizerOrders, organizerStats,
   applications,
   onClose, onCreate, onUpdate, onDelete, onCheckin, onRefund, onRefresh,
-  onPromote, onReject, onLoadApplications,
+  onPromote, onReject, onLoadApplications, onUploadImage,
   loading = {}, errors = {},
   toast,
 }) {
@@ -603,6 +618,7 @@ export function OrganizerModal({
             </div>
             <EventForm
               initial={editingEvent}
+              onUploadImage={onUploadImage}
               submitLabel="💾 Sauvegarder les modifications"
               onSubmit={async (data) => {
                 const ok = await onUpdate(editingEvent.id, data)
@@ -617,6 +633,7 @@ export function OrganizerModal({
 
         {tab === 'create' && (
           <EventForm
+            onUploadImage={onUploadImage}
             submitLabel="🚀 Publier l'événement"
             onSubmit={async (data) => {
               const created = await onCreate(data)
