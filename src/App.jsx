@@ -43,11 +43,19 @@ function App() {
     close()
   }
 
-  const handlePurchase = async (method, phone) => {
-    const result = await store.purchase(method, phone)
+  const handlePurchase = async (method, phone, discountAmount = 0) => {
+    const result = await store.purchase(method, phone, discountAmount)
     if (!result) { toast('Paiement impossible. Réessayez.', 'error'); return }
     close()
     toast('🎉 Paiement confirmé ! Vos billets sont disponibles.', 'success')
+  }
+
+  const handleLogoClick = () => {
+    setSearch('')
+    setFilterCity('')
+    setFilterCategory('')
+    setSortBy('date')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const handleToggleFav = async (eventId) => {
@@ -74,6 +82,7 @@ function App() {
         onProfile={() => requireAuth(() => open('profile'))}
         onOrganizer={() => requireAuth(() => open('organizer'))}
         onLogout={async () => { await store.logout(); toast('À bientôt !', 'info') }}
+        onLogoClick={handleLogoClick}
       />
 
       <Hero
@@ -206,10 +215,20 @@ function App() {
           toast('Événement publié ! 🎉', 'success')
           return created
         }}
+        onUpdate={async (eventId, data) => {
+          const ok = await store.updateEvent(eventId, data)
+          if (!ok) { toast("Impossible de mettre à jour l'événement", 'error') }
+          return ok
+        }}
         onDelete={async (id) => {
           const ok = await store.deleteEvent(id)
           if (!ok) { toast("Impossible de supprimer l'événement", 'error'); return }
           toast('Événement supprimé', 'info')
+        }}
+        onRefund={async (orderId) => {
+          const ok = await store.refundOrder(orderId)
+          if (!ok) { toast('Impossible de rembourser la commande', 'error'); return }
+          toast('Commande remboursée ↩', 'info')
         }}
         onCheckin={async (purchaseId, eventId) => {
           const ok = await store.checkinPurchase(purchaseId, eventId)

@@ -4,13 +4,13 @@ import styles from './Navbar.module.css'
 export function Navbar({
   user, cartCount, isOrganizer,
   onLogin, onSignup, onCart, onTickets,
-  onFavorites, onProfile, onOrganizer, onLogout,
+  onFavorites, onProfile, onOrganizer, onLogout, onLogoClick,
 }) {
   const [logoErr, setLogoErr] = useState(false)
 
   return (
     <nav className={styles.nav}>
-      <div className={styles.logo}>
+      <div className={styles.logo} onClick={onLogoClick} style={{ cursor: onLogoClick ? 'pointer' : 'default' }}>
         {!logoErr ? (
           <img
             src="/ouimoove-logo.png"

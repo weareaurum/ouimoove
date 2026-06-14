@@ -206,7 +206,7 @@ export function useStore() {
           userPhone: row.attendee_phone || '',
           date:      row.purchased_at,
           method:    row.payment_method,
-          status:    row.payment_status,
+          status:    row.payment_status || 'paid',
           total:     0,
           items:     [],
         }
@@ -426,11 +426,12 @@ export function useStore() {
   const clearCart = useCallback(() => setCart([]), [setCart])
 
   // ── PURCHASE ───────────────────────────────────────────────
-  const purchase = useCallback(async (method, phone = '') => {
+  const purchase = useCallback(async (method, phone = '', discountAmount = 0) => {
     if (!user || !cart.length) return null
 
-    const total = cart.reduce((s, i) => s + i.price * i.qty, 0)
-    const orderId = crypto.randomUUID()
+    const rawTotal = cart.reduce((s, i) => s + i.price * i.qty, 0)
+    const total    = Math.max(0, rawTotal - discountAmount)
+    const orderId  = crypto.randomUUID()
 
     // Create paid order directly
     const { error: orderError } = await supabase
@@ -557,6 +558,53 @@ export function useStore() {
     }
     return true
   }, [user, userRole, loadEvents, loadOrganizerOrders, loadOrganizerStats])
+
+  // ── UPDATE EVENT ───────────────────────────────────────────
+  const updateEvent = useCallback(async (eventId, ev) => {
+    const { error } = await supabase
+      .from('events')
+      .update({
+        title:       ev.title,
+        description: ev.desc,
+        city:        ev.city,
+        venue:       ev.location,
+        category:    ev.category,
+        event_date:  `${ev.date}T${ev.time || '20:00'}:00`,
+        emoji:       ev.emoji || '🎟️',
+        image_url:   ev.imageUrl || null,
+      })
+      .eq('id', eventId)
+    if (error) { console.error('updateEvent:', error); return false }
+    await loadEvents()
+    return true
+  }, [loadEvents])
+
+  // ── REFUND ORDER ───────────────────────────────────────────
+  const refundOrder = useCallback(async (orderId) => {
+    const { error } = await supabase
+      .from('orders')
+      .update({ payment_status: 'refunded' })
+      .eq('id', orderId)
+    if (error) { console.error('refundOrder:', error); return false }
+
+    // Restore ticket sold counts from order items
+    const { data: items } = await supabase
+      .from('order_items')
+      .select('ticket_type_id, quantity')
+      .eq('order_id', orderId)
+    for (const item of items || []) {
+      const tk = events.flatMap(e => e.tickets).find(t => t.id === item.ticket_type_id)
+      if (!tk) continue
+      await supabase
+        .from('ticket_types')
+        .update({ quantity_sold: Math.max(0, (tk.sold || 0) - item.quantity) })
+        .eq('id', item.ticket_type_id)
+    }
+
+    await loadEvents()
+    await loadOrganizerOrders(user?.id)
+    return true
+  }, [user, events, loadEvents, loadOrganizerOrders])
 
   // ── CHECK-IN ───────────────────────────────────────────────
   const checkinPurchase = useCallback(async (purchaseId, eventId = null) => {
@@ -685,10 +733,10 @@ export function useStore() {
     toggleFavorite,
 
     // events
-    createEvent, deleteEvent,
+    createEvent, updateEvent, deleteEvent,
 
     // check-in
-    checkinPurchase,
+    checkinPurchase, refundOrder,
 
     // admin
     applications,
