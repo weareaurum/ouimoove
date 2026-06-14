@@ -8,14 +8,25 @@ const METHODS = [
   { id: 'flooz',  icon: '🟡', label: 'Flooz' },
 ]
 
+function formatCardNumber(val) {
+  return val.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim()
+}
+
 export function CheckoutModal({ open, cart, cartTotal, onClose, onConfirm }) {
   const [method, setMethod] = useState('card')
-  const [phone, setPhone]   = useState('')
-  const [error, setError]   = useState('')
+  const [card,   setCard]   = useState('')
+  const [exp,    setExp]    = useState('')
+  const [cvv,    setCvv]    = useState('')
+  const [phone,  setPhone]  = useState('')
+  const [error,  setError]  = useState('')
   const [loading, setLoading] = useState(false)
 
   const validate = () => {
-    if (method !== 'card') {
+    if (method === 'card') {
+      if (card.replace(/\s/g, '').length < 16) return 'Numéro de carte invalide.'
+      if (exp.length < 5) return "Date d'expiration invalide."
+      if (cvv.length < 3) return 'CVV invalide.'
+    } else {
       const digits = phone.replace(/[\s+]/g, '')
       if (digits.length < 8) return 'Numéro de téléphone invalide.'
     }
@@ -33,7 +44,7 @@ export function CheckoutModal({ open, cart, cartTotal, onClose, onConfirm }) {
 
   return (
     <Modal open={open} onClose={onClose}>
-      <ModalHeader title="💳 Paiement" subtitle="Sécurisé via PayDunya" />
+      <ModalHeader title="💳 Paiement" subtitle="Paiement sécurisé" />
       <ModalBody>
         {/* Order summary */}
         <div className={styles.summary}>
@@ -64,7 +75,30 @@ export function CheckoutModal({ open, cart, cartTotal, onClose, onConfirm }) {
           ))}
         </div>
 
-        {/* Phone for mobile money */}
+        {/* Card fields */}
+        {method === 'card' && (
+          <div className={styles.fields}>
+            <div className={styles.group}>
+              <label className={styles.label}>Numéro de carte</label>
+              <input className={styles.input} placeholder="4242 4242 4242 4242"
+                value={card} onChange={e => setCard(formatCardNumber(e.target.value))} />
+            </div>
+            <div className={styles.row}>
+              <div className={styles.group}>
+                <label className={styles.label}>Expiration</label>
+                <input className={styles.input} placeholder="MM/AA" maxLength={5}
+                  value={exp} onChange={e => setExp(e.target.value)} />
+              </div>
+              <div className={styles.group}>
+                <label className={styles.label}>CVV</label>
+                <input className={styles.input} placeholder="123" maxLength={3}
+                  value={cvv} onChange={e => setCvv(e.target.value)} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Mobile money fields */}
         {method !== 'card' && (
           <div className={styles.fields}>
             <div className={styles.group}>
@@ -80,7 +114,7 @@ export function CheckoutModal({ open, cart, cartTotal, onClose, onConfirm }) {
         )}
 
         <button className={styles.confirmBtn} onClick={submit} disabled={loading}>
-          {loading ? 'Redirection vers PayDunya…' : `Payer avec PayDunya → ${cartTotal.toLocaleString('fr-FR')} FCFA`}
+          {loading ? 'Traitement en cours…' : `Confirmer le paiement — ${cartTotal.toLocaleString('fr-FR')} FCFA`}
         </button>
       </ModalBody>
     </Modal>

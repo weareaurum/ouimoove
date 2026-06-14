@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useStore } from './hooks/useStore.js'
 import { useToast } from './hooks/useToast.js'
 import { Navbar } from './components/Navbar.jsx'
@@ -46,37 +46,9 @@ function App() {
   const handlePurchase = async (method, phone) => {
     const result = await store.purchase(method, phone)
     if (!result) { toast('Paiement impossible. Réessayez.', 'error'); return }
-    // Redirect to PayDunya checkout page
-    if (result.redirect) {
-      window.location.href = result.redirect
-      return
-    }
     close()
     toast('🎉 Paiement confirmé ! Vos billets sont disponibles.', 'success')
   }
-
-  // Handle PayDunya return redirect
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    if (params.get('paydunya_return') === '1') {
-      // Clean URL immediately
-      window.history.replaceState({}, '', window.location.pathname)
-      // Wait for user to be loaded before verifying
-      const verify = async () => {
-        const result = await store.verifyPaydunyaReturn()
-        if (result?.ok) {
-          toast('🎉 Paiement confirmé ! Vos billets sont disponibles.', 'success')
-        } else if (result?.cancelled) {
-          toast('Paiement annulé ou échoué.', 'error')
-        }
-      }
-      verify()
-    } else if (params.get('paydunya_cancel') === '1') {
-      window.history.replaceState({}, '', window.location.pathname)
-      toast('Paiement annulé.', 'info')
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   const handleToggleFav = async (eventId) => {
     if (!requireAuth(() => {})) return

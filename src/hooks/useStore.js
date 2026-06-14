@@ -430,21 +430,9 @@ export function useStore() {
     if (!user || !cart.length) return null
 
     const total = cart.reduce((s, i) => s + i.price * i.qty, 0)
-    const returnUrl = `${window.location.origin}/?paydunya_return=1`
-    const cancelUrl = `${window.location.origin}/?paydunya_cancel=1`
-
-    // Call PayDunya edge function to create invoice
-    const { data: pdData, error: pdError } = await supabase.functions.invoke('create-paydunya-payment', {
-      body: { cart, total, userId: user.id, returnUrl, cancelUrl, method, phone },
-    })
-
-    if (pdError || pdData?.response_code !== '00') {
-      console.error('PayDunya create error:', pdError || pdData)
-      return null
-    }
-
-    // Pre-create pending order using pre-generated UUID (avoids RLS RETURNING issue)
     const orderId = crypto.randomUUID()
+
+    // Create paid order directly
     const { error: orderError } = await supabase
       .from('orders')
       .insert({
@@ -452,42 +440,13 @@ export function useStore() {
         user_id:        user.id,
         total_cfa:      total,
         payment_method: method,
-        payment_status: 'pending',
-        paydunya_token: pdData.token,
+        payment_status: 'paid',
       })
 
     if (orderError) { console.error('purchase order:', orderError); return null }
 
-    // Store pending context for when user returns from PayDunya
-    sessionStorage.setItem('om_pending_order', JSON.stringify({
-      orderId, token: pdData.token, cart: [...cart], total, userId: user.id,
-    }))
-
-    // Return redirect URL — App.jsx handles the redirect
-    return { redirect: pdData.description }
-  }, [user, cart])
-
-  // ── VERIFY PAYDUNYA RETURN ─────────────────────────────────
-  const verifyPaydunyaReturn = useCallback(async () => {
-    const raw = sessionStorage.getItem('om_pending_order')
-    if (!raw) return { cancelled: true }
-
-    const { orderId, token, cart: pendingCart, userId: pendingUserId } = JSON.parse(raw)
-    sessionStorage.removeItem('om_pending_order')
-
-    // Verify payment with PayDunya
-    const { data: verifyData, error: verifyError } = await supabase.functions.invoke('verify-paydunya-payment', {
-      body: { token },
-    })
-
-    if (verifyError || verifyData?.status !== 'completed') {
-      // Payment failed / cancelled — delete pending order
-      await supabase.from('orders').delete().eq('id', orderId)
-      return { cancelled: true }
-    }
-
-    // Payment confirmed — create order items
-    const orderItems = pendingCart.map((item) => ({
+    // Create order items
+    const orderItems = cart.map((item) => ({
       order_id:       orderId,
       event_id:       item.eventId,
       ticket_type_id: item.ticketTypeId,
@@ -495,13 +454,11 @@ export function useStore() {
       unit_price_cfa: item.price,
     }))
 
-    await supabase.from('order_items').insert(orderItems)
-
-    // Update order status to paid
-    await supabase.from('orders').update({ payment_status: 'paid' }).eq('id', orderId)
+    const { error: itemsError } = await supabase.from('order_items').insert(orderItems)
+    if (itemsError) { console.error('purchase items:', itemsError); return null }
 
     // Update ticket sold counts
-    for (const item of pendingCart) {
+    for (const item of cart) {
       const ev = events.find((e) => e.id === item.eventId)
       const tk = ev?.tickets.find((t) => t.id === item.ticketTypeId)
       if (!tk) continue
@@ -513,12 +470,10 @@ export function useStore() {
 
     clearCart()
     const freshEvents = await loadEvents()
-    const uid = pendingUserId || user?.id
-    const uname = user?.name || ''
-    if (uid) await loadMyOrders(uid, freshEvents, uname)
+    await loadMyOrders(user.id, freshEvents, user.name)
 
     return { ok: true }
-  }, [user, events, clearCart, loadEvents, loadMyOrders])
+  }, [user, cart, events, clearCart, loadEvents, loadMyOrders])
 
   // ── FAVORITES ──────────────────────────────────────────────
   const toggleFavorite = useCallback(async (eventId) => {
@@ -725,7 +680,6 @@ export function useStore() {
 
     // purchase
     purchase,
-    verifyPaydunyaReturn,
 
     // favorites
     toggleFavorite,
