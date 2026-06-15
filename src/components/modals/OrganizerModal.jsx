@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Modal, ModalHeader, ModalBody } from '../Modal.jsx'
 import { CATEGORIES, CITIES } from '../../data/events.js'
 import { formatDate } from '../../utils/helpers.js'
@@ -529,9 +529,9 @@ function AdminTab({ applications, onPromote, onReject, onRefresh, onLoadVerifReq
   const [verifBusy, setVerifBusy] = useState({})
 
   // Load verification requests on mount
-  useState(() => {
+  useEffect(() => {
     onLoadVerifRequests?.().then(setVerifRequests)
-  })
+  }, [])
 
   const refreshVerif = () => onLoadVerifRequests?.().then(setVerifRequests)
 
@@ -670,7 +670,7 @@ function InvitationsTab({ myEvents, onInvite, onLoadInvitations, toast }) {
   const handleSelect = (id) => { setSelectedId(id); load(id) }
 
   // Load on mount
-  useState(() => { if (selectedId) load(selectedId) })
+  useEffect(() => { if (selectedId) load(selectedId) }, [])
 
   const invite = async () => {
     if (!email.trim() || !selectedId) return
