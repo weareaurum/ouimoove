@@ -58,6 +58,12 @@ export function CheckoutModal({ open, cart, cartTotal, onClose, onConfirm }) {
     return null
   }
 
+  const submitFree = async () => {
+    setLoading(true)
+    await onConfirm('free', '', discountAmount)
+    setLoading(false)
+  }
+
   const submit = async () => {
     const err = validate()
     if (err) { setError(err); return }
@@ -91,91 +97,105 @@ export function CheckoutModal({ open, cart, cartTotal, onClose, onConfirm }) {
           </div>
         </div>
 
-        {/* Promo code */}
-        <div style={{ marginBottom: 18 }}>
-          <p className={styles.sectionLabel}>Code promo</p>
-          {!promoApplied ? (
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input
-                className={styles.input}
-                placeholder="Ex: WELCOME20"
-                value={promoInput}
-                onChange={e => { setPromoInput(e.target.value.toUpperCase()); setPromoError('') }}
-                onKeyDown={e => e.key === 'Enter' && applyPromo()}
-                style={{ flex: 1, textTransform: 'uppercase', letterSpacing: '0.05em' }}
-              />
-              <button
-                onClick={applyPromo}
-                style={{ background: 'var(--bg3)', border: '1px solid var(--border)', color: 'var(--muted)', borderRadius: 10, padding: '0 16px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600, whiteSpace: 'nowrap' }}
-              >
-                Appliquer
-              </button>
+        {/* Free ticket — no payment needed */}
+        {finalTotal === 0 ? (
+          <>
+            <div style={{ textAlign: 'center', padding: '18px 0', color: 'var(--success)', fontSize: '0.92rem', fontWeight: 600 }}>
+              🎉 Billet(s) gratuit(s) — aucun paiement requis
             </div>
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(34,197,94,.1)', border: '1px solid rgba(34,197,94,.3)', borderRadius: 10, padding: '10px 14px' }}>
-              <span style={{ color: 'var(--success)', fontSize: '0.85rem', fontWeight: 600 }}>✓ {promoInput} — {promoApplied.label}</span>
-              <button onClick={removePromo} style={{ background: 'transparent', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: '0.82rem' }}>✕ Retirer</button>
-            </div>
-          )}
-          {promoError && <p style={{ color: 'var(--danger)', fontSize: '0.78rem', marginTop: 6 }}>{promoError}</p>}
-        </div>
-
-        {/* Payment method selector */}
-        <p className={styles.sectionLabel}>Méthode de paiement</p>
-        <div className={styles.methods}>
-          {METHODS.map(m => (
-            <button
-              key={m.id}
-              className={[styles.method, method === m.id ? styles.selected : ''].join(' ')}
-              onClick={() => { setMethod(m.id); setError('') }}
-            >
-              <span className={styles.methodIcon}>{m.icon}</span>
-              {m.label}
+            <button className={styles.confirmBtn} onClick={submitFree} disabled={loading}>
+              {loading ? 'Traitement en cours…' : 'Confirmer gratuitement'}
             </button>
-          ))}
-        </div>
-
-        {/* Card fields */}
-        {method === 'card' && (
-          <div className={styles.fields}>
-            <div className={styles.group}>
-              <label className={styles.label}>Numéro de carte</label>
-              <input className={styles.input} placeholder="4242 4242 4242 4242"
-                value={card} onChange={e => setCard(formatCardNumber(e.target.value))} />
+          </>
+        ) : (
+          <>
+            {/* Promo code */}
+            <div style={{ marginBottom: 18 }}>
+              <p className={styles.sectionLabel}>Code promo</p>
+              {!promoApplied ? (
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    className={styles.input}
+                    placeholder="Ex: WELCOME20"
+                    value={promoInput}
+                    onChange={e => { setPromoInput(e.target.value.toUpperCase()); setPromoError('') }}
+                    onKeyDown={e => e.key === 'Enter' && applyPromo()}
+                    style={{ flex: 1, textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                  />
+                  <button
+                    onClick={applyPromo}
+                    style={{ background: 'var(--bg3)', border: '1px solid var(--border)', color: 'var(--muted)', borderRadius: 10, padding: '0 16px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600, whiteSpace: 'nowrap' }}
+                  >
+                    Appliquer
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(34,197,94,.1)', border: '1px solid rgba(34,197,94,.3)', borderRadius: 10, padding: '10px 14px' }}>
+                  <span style={{ color: 'var(--success)', fontSize: '0.85rem', fontWeight: 600 }}>✓ {promoInput} — {promoApplied.label}</span>
+                  <button onClick={removePromo} style={{ background: 'transparent', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: '0.82rem' }}>✕ Retirer</button>
+                </div>
+              )}
+              {promoError && <p style={{ color: 'var(--danger)', fontSize: '0.78rem', marginTop: 6 }}>{promoError}</p>}
             </div>
-            <div className={styles.row}>
-              <div className={styles.group}>
-                <label className={styles.label}>Expiration</label>
-                <input className={styles.input} placeholder="MM/AA" maxLength={5}
-                  value={exp} onChange={e => setExp(e.target.value)} />
+
+            {/* Payment method selector */}
+            <p className={styles.sectionLabel}>Méthode de paiement</p>
+            <div className={styles.methods}>
+              {METHODS.map(m => (
+                <button
+                  key={m.id}
+                  className={[styles.method, method === m.id ? styles.selected : ''].join(' ')}
+                  onClick={() => { setMethod(m.id); setError('') }}
+                >
+                  <span className={styles.methodIcon}>{m.icon}</span>
+                  {m.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Card fields */}
+            {method === 'card' && (
+              <div className={styles.fields}>
+                <div className={styles.group}>
+                  <label className={styles.label}>Numéro de carte</label>
+                  <input className={styles.input} placeholder="4242 4242 4242 4242"
+                    value={card} onChange={e => setCard(formatCardNumber(e.target.value))} />
+                </div>
+                <div className={styles.row}>
+                  <div className={styles.group}>
+                    <label className={styles.label}>Expiration</label>
+                    <input className={styles.input} placeholder="MM/AA" maxLength={5}
+                      value={exp} onChange={e => setExp(e.target.value)} />
+                  </div>
+                  <div className={styles.group}>
+                    <label className={styles.label}>CVV</label>
+                    <input className={styles.input} placeholder="123" maxLength={3}
+                      value={cvv} onChange={e => setCvv(e.target.value)} />
+                  </div>
+                </div>
               </div>
-              <div className={styles.group}>
-                <label className={styles.label}>CVV</label>
-                <input className={styles.input} placeholder="123" maxLength={3}
-                  value={cvv} onChange={e => setCvv(e.target.value)} />
+            )}
+
+            {/* Mobile money fields */}
+            {method !== 'card' && (
+              <div className={styles.fields}>
+                <div className={styles.group}>
+                  <label className={styles.label}>Numéro de téléphone</label>
+                  <input className={styles.input} placeholder="+228 90 00 00 00"
+                    value={phone} onChange={e => setPhone(e.target.value)} />
+                </div>
               </div>
-            </div>
-          </div>
-        )}
+            )}
 
-        {/* Mobile money fields */}
-        {method !== 'card' && (
-          <div className={styles.fields}>
-            <div className={styles.group}>
-              <label className={styles.label}>Numéro de téléphone</label>
-              <input className={styles.input} placeholder="+228 90 00 00 00"
-                value={phone} onChange={e => setPhone(e.target.value)} />
-            </div>
-          </div>
-        )}
+            {error && (
+              <p style={{ color: 'var(--danger)', fontSize: '0.82rem', marginBottom: 10 }}>{error}</p>
+            )}
 
-        {error && (
-          <p style={{ color: 'var(--danger)', fontSize: '0.82rem', marginBottom: 10 }}>{error}</p>
+            <button className={styles.confirmBtn} onClick={submit} disabled={loading}>
+              {loading ? 'Traitement en cours…' : `Confirmer le paiement — ${finalTotal.toLocaleString('fr-FR')} FCFA`}
+            </button>
+          </>
         )}
-
-        <button className={styles.confirmBtn} onClick={submit} disabled={loading}>
-          {loading ? 'Traitement en cours…' : `Confirmer le paiement — ${finalTotal.toLocaleString('fr-FR')} FCFA`}
-        </button>
       </ModalBody>
     </Modal>
   )

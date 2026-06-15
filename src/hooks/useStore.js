@@ -428,7 +428,7 @@ export function useStore() {
     const rawTotal = cart.reduce((s, i) => s + i.price * i.qty, 0)
     const total    = Math.max(0, rawTotal - discountAmount)
 
-    if (PAYMENT_MODE === 'paydunya') {
+    if (PAYMENT_MODE === 'paydunya' && total > 0) {
       // ── PayDunya flow ──
       const returnUrl = `${window.location.origin}/?paydunya_return=1`
       const cancelUrl = `${window.location.origin}/?paydunya_cancel=1`
@@ -460,7 +460,8 @@ export function useStore() {
       }))
 
       clearCart()
-      return { redirect: pdData.description }
+      const checkoutUrl = `https://app.paydunya.com/${PAYMENT_MODE === 'live' ? '' : 'sandbox-'}checkout/invoice/${pdData.token}`
+      return { redirect: checkoutUrl }
     }
 
     // ── Simulation flow ──
