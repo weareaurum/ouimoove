@@ -845,27 +845,36 @@ export function useStore() {
       .eq('id', eventId)
     if (error) { console.error('updateEvent:', error); return false }
 
-    // Re-sync ticket types: delete existing (except preserve sold counts), re-insert
+    // Re-sync ticket types: update existing (preserving IDs/sold counts), add new, remove deleted
     if (ev.tickets?.length) {
       const { data: existing } = await supabase
         .from('ticket_types')
         .select('id, name, quantity_sold')
         .eq('event_id', eventId)
 
-      const soldByName = {}
-      for (const t of existing || []) soldByName[t.name] = t.quantity_sold || 0
+      const existingByName = {}
+      for (const t of existing || []) existingByName[t.name] = t
 
-      await supabase.from('ticket_types').delete().eq('event_id', eventId)
+      const newNames = new Set(ev.tickets.map(t => t.name))
 
-      await supabase.from('ticket_types').insert(
-        ev.tickets.map((t) => ({
-          event_id:       eventId,
-          name:           t.name,
-          price_cfa:      t.price,
-          quantity_total: t.total,
-          quantity_sold:  soldByName[t.name] || 0,
-        }))
-      )
+      // Delete removed ticket types
+      const toDelete = (existing || []).filter(t => !newNames.has(t.name)).map(t => t.id)
+      if (toDelete.length) await supabase.from('ticket_types').delete().in('id', toDelete)
+
+      for (const t of ev.tickets) {
+        if (existingByName[t.name]) {
+          // Update existing — preserve ID and sold count
+          await supabase.from('ticket_types')
+            .update({ price_cfa: t.price, quantity_total: t.total })
+            .eq('id', existingByName[t.name].id)
+        } else {
+          // Insert new
+          await supabase.from('ticket_types').insert({
+            event_id: eventId, name: t.name,
+            price_cfa: t.price, quantity_total: t.total, quantity_sold: 0,
+          })
+        }
+      }
     }
 
     await loadEvents()
