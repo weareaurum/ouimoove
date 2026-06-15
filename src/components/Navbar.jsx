@@ -4,7 +4,7 @@ import styles from './Navbar.module.css'
 export function Navbar({
   user, cartCount, isOrganizer,
   onLogin, onSignup, onCart, onTickets,
-  onFavorites, onProfile, onOrganizer, onLogout, onLogoClick, onMarket,
+  onFavorites, onProfile, onOrganizer, onLogout, onLogoClick, onMarket, onCreateEvent,
 }) {
   const [logoErr, setLogoErr] = useState(false)
 
@@ -26,11 +26,13 @@ export function Navbar({
       <div className={styles.right}>
         {!user ? (
           <>
+            <button className={styles.btnPrimary} onClick={onCreateEvent}>✚ Créer un événement</button>
             <button className={styles.btnGhost} onClick={onLogin}>Connexion</button>
-            <button className={styles.btnPrimary} onClick={onSignup}>Inscription</button>
+            <button className={styles.btnGhost} onClick={onSignup}>Inscription</button>
           </>
         ) : (
           <>
+            <button className={styles.btnPrimary} onClick={onCreateEvent}>✚ <span className={styles.label}>Créer</span></button>
             <button className={styles.btnGhost} onClick={onFavorites}>
               ❤️ <span className={styles.label}>Favoris</span>
             </button>

@@ -6,6 +6,7 @@ export function Hero({
   filterCity, setFilterCity,
   filterCategory, setFilterCategory,
   sortBy, setSortBy,
+  onCreateEvent,
 }) {
   return (
     <section className={styles.hero}>
@@ -50,6 +51,11 @@ export function Hero({
             {CATEGORY_EMOJI[cat]} {cat}
           </button>
         ))}
+      </div>
+
+      <div className={styles.createCta} onClick={onCreateEvent}>
+        <span>🎤 Vous organisez un événement ?</span>
+        <span className={styles.ctaLink}>Publiez-le gratuitement →</span>
       </div>
 
       <div className={styles.sortBar}>

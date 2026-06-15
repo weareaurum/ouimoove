@@ -92,6 +92,13 @@ function App() {
     toast(wasFav ? 'Retiré des favoris' : 'Ajouté aux favoris ❤️', wasFav ? 'info' : 'success')
   }
 
+  const handleCreateEvent = () => {
+    if (!store.user) { open('login'); return }
+    if (store.isOrganizer) { open('organizer'); return }
+    open('profile')
+    toast('Soumettez une demande pour devenir organisateur et publier vos événements.', 'info')
+  }
+
   const handleLogoClick = () => {
     setSearch('')
     setFilterCity('')
@@ -131,6 +138,7 @@ function App() {
         onLogout={async () => { await store.logout(); toast('À bientôt !', 'info') }}
         onLogoClick={handleLogoClick}
         onMarket={() => open('market')}
+        onCreateEvent={handleCreateEvent}
       />
 
       <Hero
@@ -138,6 +146,7 @@ function App() {
         filterCity={filterCity}   setFilterCity={setFilterCity}
         filterCategory={filterCategory} setFilterCategory={setFilterCategory}
         sortBy={sortBy}           setSortBy={setSortBy}
+        onCreateEvent={handleCreateEvent}
       />
 
       <EventGrid

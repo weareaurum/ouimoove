@@ -37,6 +37,19 @@
 .pill:hover, .pill.active {
   background: rgba(124,58,237,.2); border-color: var(--purple); color: var(--purple3);
 }
+.createCta {
+  display: inline-flex; align-items: center; gap: 12px;
+  background: linear-gradient(135deg, rgba(255,107,53,.15), rgba(124,58,237,.15));
+  border: 1px solid rgba(255,107,53,.35);
+  border-radius: 12px; padding: 11px 22px; margin-bottom: 1.4rem;
+  cursor: pointer; transition: all .2s; font-size: 0.9rem; color: var(--text);
+}
+.createCta:hover {
+  background: linear-gradient(135deg, rgba(255,107,53,.25), rgba(124,58,237,.25));
+  border-color: var(--orange); transform: translateY(-1px);
+}
+.ctaLink { color: var(--orange); font-weight: 700; }
+
 .sortBar {
   display: flex; align-items: center; justify-content: center;
   gap: 10px; color: var(--muted); font-size: 0.85rem; padding-bottom: 0.5rem;
