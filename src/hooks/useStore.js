@@ -843,6 +843,30 @@ export function useStore() {
       })
       .eq('id', eventId)
     if (error) { console.error('updateEvent:', error); return false }
+
+    // Re-sync ticket types: delete existing (except preserve sold counts), re-insert
+    if (ev.tickets?.length) {
+      const { data: existing } = await supabase
+        .from('ticket_types')
+        .select('id, name, quantity_sold')
+        .eq('event_id', eventId)
+
+      const soldByName = {}
+      for (const t of existing || []) soldByName[t.name] = t.quantity_sold || 0
+
+      await supabase.from('ticket_types').delete().eq('event_id', eventId)
+
+      await supabase.from('ticket_types').insert(
+        ev.tickets.map((t) => ({
+          event_id:       eventId,
+          name:           t.name,
+          price_cfa:      t.price,
+          quantity_total: t.total,
+          quantity_sold:  soldByName[t.name] || 0,
+        }))
+      )
+    }
+
     await loadEvents()
     return true
   }, [loadEvents])
