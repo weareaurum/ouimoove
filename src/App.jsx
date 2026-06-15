@@ -114,6 +114,7 @@ function App() {
   const handlePurchase = async (method, phone, discountAmount = 0) => {
     const result = await store.purchase(method, phone, discountAmount)
     if (!result) { toast('Paiement impossible. Réessayez.', 'error'); return }
+    if (result.pdError) { toast(`Erreur PayDunya : ${result.pdError}`, 'error'); return }
     if (result.redirect) {
       window.location.href = result.redirect
       return

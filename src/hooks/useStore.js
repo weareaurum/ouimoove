@@ -444,7 +444,7 @@ export function useStore() {
 
       if (pdError || pdData?.response_code !== '00') {
         console.error('PayDunya create error:', pdError || pdData)
-        return null
+        return { pdError: pdData?.description || pdData?.response_text || pdError?.message || 'Erreur PayDunya' }
       }
 
       // Pre-create pending order
@@ -714,7 +714,8 @@ export function useStore() {
         userId:            user.id,
       }))
 
-      return { redirect: pdData.description }
+      const resaleCheckoutUrl = `https://app.paydunya.com/${PAYMENT_MODE === 'live' ? '' : 'sandbox-'}checkout/invoice/${pdData.token}`
+      return { redirect: resaleCheckoutUrl }
     }
 
     // ── Simulation flow ──
