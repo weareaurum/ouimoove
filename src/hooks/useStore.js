@@ -997,7 +997,7 @@ export function useStore() {
     if (!user) return { ok: false, error: 'Non connecté' }
     const { data, error } = await supabase
       .from('event_invitations')
-      .upsert({ event_id: eventId, email: email.trim().toLowerCase(), invited_by: user.id }, { onConflict: 'event_id,email' })
+      .upsert({ event_id: eventId, email: email.trim().toLowerCase(), invited_by: user.id, organizer_id: user.id }, { onConflict: 'event_id,email' })
       .select('token')
       .single()
     if (error) { console.error('inviteToEvent:', error); return { ok: false, error: error.message } }
