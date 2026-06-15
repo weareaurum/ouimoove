@@ -291,6 +291,8 @@ function App() {
       <ProfileModal
         open={modal === 'profile'}
         user={store.user}
+        userNumber={store.userNumber}
+        isVerified={store.isVerified}
         isOrganizer={store.isOrganizer}
         onClose={close}
         onSave={async (name, email, pwd) => {
@@ -311,6 +313,13 @@ function App() {
           await store.unsubscribePush()
           toast('Notifications désactivées', 'info')
         }}
+        onSubmitVerification={async (file) => {
+          const result = await store.submitVerification(file)
+          if (result?.ok) toast('Document envoyé ! Vérification en cours.', 'success')
+          else toast(result?.error || 'Erreur lors de l\'envoi.', 'error')
+          return result
+        }}
+        onLoadVerificationStatus={store.loadVerificationStatus}
       />
 
       {/* ── Organizer Dashboard ── */}
@@ -367,6 +376,19 @@ function App() {
         onUploadImage={store.uploadEventImage}
         onInvite={store.inviteToEvent}
         onLoadInvitations={store.loadInvitations}
+        onLoadVerifRequests={store.loadVerificationRequests}
+        onApproveVerif={async (userId) => {
+          const ok = await store.approveVerification(userId)
+          if (ok) toast('Compte vérifié ✓', 'success')
+          else toast('Impossible d\'approuver', 'error')
+          return ok
+        }}
+        onDenyVerif={async (userId, reason) => {
+          const ok = await store.denyVerification(userId, reason)
+          if (ok) toast('Demande refusée.', 'info')
+          else toast('Impossible de refuser', 'error')
+          return ok
+        }}
         toast={toast}
       />
 

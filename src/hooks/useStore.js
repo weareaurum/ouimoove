@@ -65,6 +65,8 @@ function shapeMyOrder(order, eventsRef, userName = '') {
 export function useStore() {
   const [user,            setUserState]       = useState(null)
   const [userRole,        setUserRole]        = useState('user')
+  const [userNumber,      setUserNumber]      = useState(null)
+  const [isVerified,      setIsVerified]      = useState(false)
   const [events,          setEventsState]     = useState([])
   const [cart,            setCartState]       = useState(() => {
     try { return JSON.parse(localStorage.getItem('om_cart')) || [] } catch { return [] }
@@ -147,12 +149,14 @@ export function useStore() {
     if (!userId) return 'user'
     const { data } = await supabase
       .from('profiles')
-      .select('role')
+      .select('role, user_number, is_verified')
       .eq('id', userId)
       .single()
     const role = data?.role || 'user'
     setUserRole(role)
-    return role
+    setUserNumber(data?.user_number || null)
+    setIsVerified(data?.is_verified || false)
+    return { role, userNumber: data?.user_number, isVerified: data?.is_verified || false }
   }, [])
 
   // ── LOAD FAVORITES ─────────────────────────────────────────
@@ -992,6 +996,55 @@ export function useStore() {
     } catch (e) { console.error('unsubscribePush:', e) }
   }, [user])
 
+  // ── VERIFICATION ───────────────────────────────────────────
+  const submitVerification = useCallback(async (file) => {
+    if (!user) return { ok: false, error: 'Non connecté' }
+    const ext = file.name.split('.').pop()
+    const path = `${user.id}/id-card.${ext}`
+    const { error: upErr } = await supabase.storage
+      .from('verification-docs')
+      .upload(path, file, { upsert: true })
+    if (upErr) return { ok: false, error: upErr.message }
+    const { data: urlData } = supabase.storage.from('verification-docs').getPublicUrl(path)
+    const url = urlData?.publicUrl || path
+    const { error } = await supabase
+      .from('verification_requests')
+      .upsert({ user_id: user.id, id_card_url: url, status: 'pending', denial_reason: null }, { onConflict: 'user_id' })
+    if (error) return { ok: false, error: error.message }
+    return { ok: true }
+  }, [user])
+
+  const loadVerificationStatus = useCallback(async () => {
+    if (!user) return null
+    const { data } = await supabase
+      .from('verification_requests')
+      .select('status, denial_reason, created_at')
+      .eq('user_id', user.id)
+      .single()
+    return data
+  }, [user])
+
+  const loadVerificationRequests = useCallback(async () => {
+    const { data } = await supabase
+      .from('verification_requests')
+      .select('id, user_id, id_card_url, status, denial_reason, created_at, profiles(name, email, user_number)')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true })
+    return data || []
+  }, [])
+
+  const approveVerification = useCallback(async (targetUserId) => {
+    const { error } = await supabase.rpc('approve_verification', { target_user_id: targetUserId })
+    if (error) { console.error('approveVerification:', error); return false }
+    return true
+  }, [])
+
+  const denyVerification = useCallback(async (targetUserId, reason) => {
+    const { error } = await supabase.rpc('deny_verification', { target_user_id: targetUserId, reason })
+    if (error) { console.error('denyVerification:', error); return false }
+    return true
+  }, [])
+
   // ── INVITATIONS ────────────────────────────────────────────
   const inviteToEvent = useCallback(async (eventId, email, eventTitle, eventDate, eventCity) => {
     if (!user) return { ok: false, error: 'Non connecté' }
@@ -1040,7 +1093,7 @@ export function useStore() {
   const isAdmin     = userRole === 'admin'
 
   return {
-    user, userRole, isOrganizer, isAdmin,
+    user, userRole, userNumber, isVerified, isOrganizer, isAdmin,
     events, cart, favorites,
     myPurchases:    myOrders,
     organizerOrders,
@@ -1084,6 +1137,12 @@ export function useStore() {
     inviteToEvent,
     loadInvitations,
     acceptInvitation,
+
+    submitVerification,
+    loadVerificationStatus,
+    loadVerificationRequests,
+    approveVerification,
+    denyVerification,
 
     refreshOrganizerData,
     loadEvents,
