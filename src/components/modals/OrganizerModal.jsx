@@ -4,11 +4,12 @@ import { CATEGORIES, CITIES } from '../../data/events.js'
 import { formatDate } from '../../utils/helpers.js'
 
 const BASE_TABS = [
-  { id: 'overview',   label: "Vue d'ensemble" },
-  { id: 'analytics',  label: '📈 Analytique' },
-  { id: 'events',     label: 'Mes Événements' },
-  { id: 'create',     label: 'Créer' },
-  { id: 'attendees',  label: 'Participants' },
+  { id: 'overview',     label: "Vue d'ensemble" },
+  { id: 'analytics',   label: '📈 Analytique' },
+  { id: 'events',      label: 'Mes Événements' },
+  { id: 'create',      label: 'Créer' },
+  { id: 'attendees',   label: 'Participants' },
+  { id: 'invitations', label: '🔒 Invitations' },
 ]
 const ADMIN_TAB = { id: 'admin', label: '🔑 Admin' }
 
@@ -227,6 +228,7 @@ function EventForm({ initial, submitLabel, onSubmit, onCancel, onUploadImage, to
   const [desc,        setDesc]        = useState(initial?.desc        || '')
   const [emoji,       setEmoji]       = useState(initial?.emoji       || '')
   const [imageUrl,    setImageUrl]    = useState(initial?.imageUrl    || '')
+  const [isPrivate,   setIsPrivate]   = useState(initial?.isPrivate   || false)
   const [ticketTypes, setTicketTypes] = useState(
     initial?.tickets?.length
       ? initial.tickets.map(t => ({ name: t.name, price: String(t.price), qty: String(t.total) }))
@@ -246,7 +248,7 @@ function EventForm({ initial, submitLabel, onSubmit, onCancel, onUploadImage, to
       .map(t => ({ name: t.name.trim(), price: parseInt(t.price) || 0, total: parseInt(t.qty) || 100, sold: 0 }))
     if (!tickets.length) { setError('Ajoutez au moins un type de billet avec un nom.'); return }
     setError(''); setLoading(true)
-    await onSubmit({ title: title.trim(), category, date, time, location: location.trim(), city, desc: desc.trim(), emoji: emoji || '🎟️', imageUrl: imageUrl.trim() || null, tickets })
+    await onSubmit({ title: title.trim(), category, date, time, location: location.trim(), city, desc: desc.trim(), emoji: emoji || '🎟️', imageUrl: imageUrl.trim() || null, isPrivate, tickets })
     setLoading(false)
   }
 
@@ -322,6 +324,22 @@ function EventForm({ initial, submitLabel, onSubmit, onCancel, onUploadImage, to
             style={{ marginTop: 8, width: '100%', height: 120, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border)' }}
             onError={e => { e.currentTarget.style.display = 'none' }} />
         )}
+      </div>
+
+      {/* Private toggle */}
+      <div
+        onClick={() => setIsPrivate(v => !v)}
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: isPrivate ? 'rgba(124,58,237,.12)' : 'var(--bg3)', border: `1px solid ${isPrivate ? 'var(--purple)' : 'var(--border)'}`, borderRadius: 10, padding: '12px 14px', marginBottom: 14, cursor: 'pointer', transition: 'all .2s', userSelect: 'none' }}
+      >
+        <div>
+          <div style={{ fontWeight: 600, fontSize: '0.88rem', color: isPrivate ? 'var(--purple3)' : 'var(--text)' }}>🔒 Événement privé</div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: 2 }}>
+            {isPrivate ? 'Visible uniquement par les personnes invitées' : 'Visible par tous les utilisateurs'}
+          </div>
+        </div>
+        <div style={{ width: 44, height: 24, borderRadius: 99, background: isPrivate ? 'var(--purple)' : 'var(--bg2)', border: '1px solid var(--border)', position: 'relative', transition: 'background .2s', flexShrink: 0 }}>
+          <div style={{ position: 'absolute', top: 2, left: isPrivate ? 22 : 2, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left .2s', boxShadow: '0 1px 3px rgba(0,0,0,.3)' }} />
+        </div>
       </div>
 
       <p style={{ fontSize: '0.82rem', color: 'var(--muted)', marginBottom: 8, fontWeight: 500 }}>Types de billets</p>
@@ -557,12 +575,134 @@ function AdminTab({ applications, onPromote, onReject, onRefresh }) {
   )
 }
 
+// ── Invitations Tab ───────────────────────────────────────────
+function InvitationsTab({ myEvents, onInvite, onLoadInvitations, toast }) {
+  const [selectedId,   setSelectedId]   = useState(myEvents[0]?.id ?? '')
+  const [email,        setEmail]        = useState('')
+  const [invitations,  setInvitations]  = useState([])
+  const [loading,      setLoading]      = useState(false)
+  const [copied,       setCopied]       = useState(null)
+
+  const selectedEvent = myEvents.find(e => e.id === selectedId)
+
+  const load = async (id) => {
+    if (!id) return
+    const list = await onLoadInvitations(id)
+    setInvitations(list)
+  }
+
+  const handleSelect = (id) => { setSelectedId(id); load(id) }
+
+  // Load on mount
+  useState(() => { if (selectedId) load(selectedId) })
+
+  const invite = async () => {
+    if (!email.trim() || !selectedId) return
+    setLoading(true)
+    const result = await onInvite(
+      selectedId, email,
+      selectedEvent?.title, selectedEvent?.date, selectedEvent?.city
+    )
+    setLoading(false)
+    if (result?.ok) {
+      toast?.('Invitation envoyée ✓', 'success')
+      setEmail('')
+      load(selectedId)
+    } else {
+      toast?.(result?.error || 'Erreur lors de l\'envoi', 'error')
+    }
+  }
+
+  const copyLink = (token) => {
+    const url = `${window.location.origin}/?invite=${token}`
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(token)
+      setTimeout(() => setCopied(null), 2000)
+    })
+  }
+
+  const privateEvents = myEvents.filter(e => e.isPrivate)
+
+  return (
+    <div>
+      {!myEvents.length ? (
+        <p style={{ color: 'var(--muted)', fontSize: '0.85rem', textAlign: 'center', padding: '24px 0' }}>Créez d'abord un événement.</p>
+      ) : (
+        <>
+          <div style={groupStyle}>
+            <label style={labelStyle}>Événement</label>
+            <select style={inputStyle} value={selectedId} onChange={e => handleSelect(e.target.value)}>
+              {myEvents.map(e => (
+                <option key={e.id} value={e.id}>{e.isPrivate ? '🔒 ' : ''}{e.title}</option>
+              ))}
+            </select>
+            {selectedEvent && !selectedEvent.isPrivate && (
+              <p style={{ color: 'var(--orange)', fontSize: '0.78rem', marginTop: 6 }}>⚠️ Cet événement est public. Les invitations fonctionnent mais tout le monde peut y accéder.</p>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
+            <input
+              style={{ ...inputStyle, flex: 1 }}
+              type="email"
+              placeholder="email@exemple.com"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && invite()}
+            />
+            <button
+              onClick={invite}
+              disabled={loading || !email.trim()}
+              style={{ flexShrink: 0, background: 'linear-gradient(135deg, var(--purple), var(--purple2))', color: '#fff', border: 'none', borderRadius: 10, padding: '0 18px', cursor: loading ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontWeight: 600, opacity: loading ? 0.7 : 1 }}
+            >
+              {loading ? '…' : '✉️ Inviter'}
+            </button>
+          </div>
+
+          {invitations.length > 0 && (
+            <>
+              <p style={{ fontSize: '0.78rem', color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
+                {invitations.length} invitation{invitations.length !== 1 ? 's' : ''}
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {invitations.map(inv => (
+                  <div key={inv.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 14px' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{inv.email}</div>
+                      <div style={{ fontSize: '0.72rem', color: inv.status === 'accepted' ? 'var(--success)' : 'var(--muted)', marginTop: 2 }}>
+                        {inv.status === 'accepted' ? '✓ Accepté' : '⏳ En attente'}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => copyLink(inv.token)}
+                      style={{ flexShrink: 0, background: 'transparent', border: '1px solid var(--border)', color: copied === inv.token ? 'var(--success)' : 'var(--muted)', borderRadius: 8, padding: '5px 10px', cursor: 'pointer', fontSize: '0.75rem', transition: 'all .2s' }}
+                    >
+                      {copied === inv.token ? '✓ Copié' : '🔗 Lien'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {invitations.length === 0 && selectedId && (
+            <p style={{ color: 'var(--muted)', fontSize: '0.85rem', textAlign: 'center', padding: '20px 0' }}>
+              Aucune invitation envoyée pour cet événement.
+            </p>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
 // ── Main Modal ────────────────────────────────────────────────
 export function OrganizerModal({
   open, user, isAdmin, myEvents, purchases, organizerOrders, organizerStats,
   applications,
   onClose, onCreate, onUpdate, onDelete, onCheckin, onRefund, onRefresh,
   onPromote, onReject, onLoadApplications, onUploadImage,
+  onInvite, onLoadInvitations,
   loading = {}, errors = {},
   toast,
 }) {
@@ -652,6 +792,15 @@ export function OrganizerModal({
             onRefund={onRefund}
             loading={loading} errors={errors}
             onRefresh={onRefresh}
+          />
+        )}
+
+        {tab === 'invitations' && (
+          <InvitationsTab
+            myEvents={myEvents}
+            onInvite={onInvite}
+            onLoadInvitations={onLoadInvitations}
+            toast={toast}
           />
         )}
 

@@ -20,6 +20,7 @@ function shapeEvent(event) {
     desc:      event.description || '',
     emoji:     event.emoji || '🎟️',
     imageUrl:  event.image_url || null,
+    isPrivate: event.is_private || false,
     status:    event.status,
     tickets:   (event.ticket_types || []).map((t) => ({
       id:    t.id,
@@ -782,6 +783,7 @@ export function useStore() {
         event_date:   `${ev.date}T${ev.time || '20:00'}:00`,
         emoji:        ev.emoji || '🎟️',
         image_url:    ev.imageUrl || null,
+        is_private:   ev.isPrivate || false,
         status:       'published',
       })
       .select()
@@ -833,6 +835,7 @@ export function useStore() {
         event_date:  `${ev.date}T${ev.time || '20:00'}:00`,
         emoji:       ev.emoji || '🎟️',
         image_url:   ev.imageUrl || null,
+        is_private:  ev.isPrivate || false,
       })
       .eq('id', eventId)
     if (error) { console.error('updateEvent:', error); return false }
@@ -989,6 +992,39 @@ export function useStore() {
     } catch (e) { console.error('unsubscribePush:', e) }
   }, [user])
 
+  // ── INVITATIONS ────────────────────────────────────────────
+  const inviteToEvent = useCallback(async (eventId, email, eventTitle, eventDate, eventCity) => {
+    if (!user) return { ok: false, error: 'Non connecté' }
+    const { data, error } = await supabase
+      .from('event_invitations')
+      .upsert({ event_id: eventId, email: email.trim().toLowerCase(), invited_by: user.id }, { onConflict: 'event_id,email' })
+      .select('token')
+      .single()
+    if (error) { console.error('inviteToEvent:', error); return { ok: false, error: error.message } }
+    const inviteUrl = `${window.location.origin}/?invite=${data.token}`
+    // Send email (fire-and-forget)
+    supabase.functions.invoke('send-invitation', {
+      body: { to: email.trim(), inviterName: user.name, eventTitle, eventDate, eventCity, inviteUrl }
+    }).catch(console.error)
+    return { ok: true, token: data.token, inviteUrl }
+  }, [user])
+
+  const loadInvitations = useCallback(async (eventId) => {
+    const { data, error } = await supabase
+      .from('event_invitations')
+      .select('id,email,status,token,created_at')
+      .eq('event_id', eventId)
+      .order('created_at', { ascending: false })
+    if (error) return []
+    return data
+  }, [])
+
+  const acceptInvitation = useCallback(async (token) => {
+    const { data, error } = await supabase.rpc('accept_invitation', { invite_token: token })
+    if (error) return { ok: false, error: error.message }
+    return data
+  }, [])
+
   // ── REFRESH ────────────────────────────────────────────────
   const refreshOrganizerData = useCallback(async () => {
     if (!user?.id) return
@@ -1044,6 +1080,10 @@ export function useStore() {
     uploadEventImage,
     subscribePush,
     unsubscribePush,
+
+    inviteToEvent,
+    loadInvitations,
+    acceptInvitation,
 
     refreshOrganizerData,
     loadEvents,

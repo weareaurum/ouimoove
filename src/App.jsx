@@ -55,8 +55,46 @@ function App() {
     } else if (params.get('paydunya_cancel') === '1') {
       window.history.replaceState({}, '', window.location.pathname)
       toast('Paiement annulé.', 'info')
+    } else if (params.get('invite')) {
+      const token = params.get('invite')
+      window.history.replaceState({}, '', window.location.pathname)
+      ;(async () => {
+        if (!store.user) {
+          sessionStorage.setItem('pending_invite', token)
+          toast('Connectez-vous pour accepter cette invitation.', 'info')
+          open('login')
+          return
+        }
+        const result = await store.acceptInvitation(token)
+        if (result?.ok) {
+          toast('🎉 Invitation acceptée ! Vous pouvez maintenant voir et réserver cet événement.', 'success')
+        } else if (result?.error === 'email_mismatch') {
+          toast(`Cette invitation est destinée à ${result.invited_email}. Connectez-vous avec ce compte.`, 'error')
+        } else {
+          toast(result?.error || 'Lien d\'invitation invalide.', 'error')
+        }
+      })()
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Accept pending invite after login
+  useEffect(() => {
+    if (!store.user) return
+    const token = sessionStorage.getItem('pending_invite')
+    if (!token) return
+    sessionStorage.removeItem('pending_invite')
+    ;(async () => {
+      const result = await store.acceptInvitation(token)
+      if (result?.ok) {
+        toast('🎉 Invitation acceptée ! Vous pouvez maintenant voir et réserver cet événement.', 'success')
+        await store.loadEvents()
+      } else if (result?.error === 'email_mismatch') {
+        toast(`Cette invitation est destinée à ${result.invited_email}.`, 'error')
+      } else {
+        toast(result?.error || 'Lien d\'invitation invalide.', 'error')
+      }
+    })()
+  }, [store.user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const requireAuth = (then) => {
     if (!store.user) { open('login'); return false }
@@ -327,6 +365,8 @@ function App() {
         }}
         onLoadApplications={store.loadApplications}
         onUploadImage={store.uploadEventImage}
+        onInvite={store.inviteToEvent}
+        onLoadInvitations={store.loadInvitations}
         toast={toast}
       />
 
