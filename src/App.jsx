@@ -92,11 +92,13 @@ function App() {
     toast(wasFav ? 'Retiré des favoris' : 'Ajouté aux favoris ❤️', wasFav ? 'info' : 'success')
   }
 
-  const handleCreateEvent = () => {
+  const handleCreateEvent = async () => {
     if (!store.user) { open('login'); return }
-    if (store.isOrganizer) { open('organizer'); return }
-    open('profile')
-    toast('Soumettez une demande pour devenir organisateur et publier vos événements.', 'info')
+    if (!store.isOrganizer) {
+      const ok = await store.becomeOrganizer()
+      if (!ok) { toast('Impossible d\'activer le mode organisateur. Réessayez.', 'error'); return }
+    }
+    open('organizer')
   }
 
   const handleLogoClick = () => {
