@@ -9,7 +9,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 72px;
+  height: 110px;
 }
 
 .logo {
@@ -25,7 +25,7 @@
 
 .logo img {
   display: block;
-  height: 64px;
+  height: 100px;
   width: auto;
   object-fit: contain;
 }
@@ -119,11 +119,11 @@
 @media (max-width: 680px) {
   .nav {
     padding: 0 1rem;
-    height: 68px;
+    height: 80px;
   }
 
   .logo img {
-    height: 48px;
+    height: 68px;
   }
 
   .label {
