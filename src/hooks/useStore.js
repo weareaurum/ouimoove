@@ -910,7 +910,7 @@ export function useStore() {
 
   const becomeOrganizer = useCallback(async () => {
     if (!user) return false
-    const { error } = await supabase.rpc('promote_to_organizer', { target_user_id: user.id })
+    const { error } = await supabase.rpc('self_become_organizer')
     if (error) { console.error('becomeOrganizer:', error); return false }
     setUserRole('organizer')
     return true
