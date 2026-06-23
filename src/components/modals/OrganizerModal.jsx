@@ -3,6 +3,8 @@ import { Modal, ModalHeader, ModalBody } from '../Modal.jsx'
 import { CATEGORIES, CITIES } from '../../data/events.js'
 import { formatDate } from '../../utils/helpers.js'
 
+const OTHER_CITY = '__other__'
+
 const BASE_TABS = [
   { id: 'overview',     label: "Vue d'ensemble" },
   { id: 'analytics',   label: '📈 Analytique' },
@@ -218,13 +220,19 @@ const labelStyle = { display: 'block', fontSize: '0.82rem', color: 'var(--muted)
 const groupStyle = { marginBottom: 14 }
 
 // ── Event Form (shared by Create and Edit) ────────────────────
-function EventForm({ initial, submitLabel, onSubmit, onCancel, onUploadImage, toast }) {
+function EventForm({ initial, submitLabel, onSubmit, onCancel, onUploadImage, onRequestCity, cities, toast }) {
+  const allCities = cities?.length ? cities : CITIES
+
   const [title,       setTitle]       = useState(initial?.title       || '')
   const [category,    setCategory]    = useState(initial?.category    || CATEGORIES[0])
   const [date,        setDate]        = useState(initial?.date        || '')
   const [time,        setTime]        = useState(initial?.time        || '20:00')
   const [location,    setLocation]    = useState(initial?.location    || '')
-  const [city,        setCity]        = useState(initial?.city        || CITIES[0])
+  const initCity = initial?.city && allCities.includes(initial.city) ? initial.city : (initial?.city ? OTHER_CITY : allCities[0])
+  const [citySelect,  setCitySelect]  = useState(initCity)
+  const [customCity,  setCustomCity]  = useState(initial?.city && !allCities.includes(initial.city) ? initial.city : '')
+  const [cityReqSent, setCityReqSent] = useState(false)
+  const city = citySelect === OTHER_CITY ? customCity.trim() : citySelect
   const [desc,        setDesc]        = useState(initial?.desc        || '')
   const [emoji,       setEmoji]       = useState(initial?.emoji       || '')
   const [imageUrl,    setImageUrl]    = useState(initial?.imageUrl    || '')
@@ -243,6 +251,7 @@ function EventForm({ initial, submitLabel, onSubmit, onCancel, onUploadImage, to
 
   const submit = async () => {
     if (!title.trim() || !date || !location.trim()) { setError('Titre, date et lieu sont requis.'); return }
+    if (!city) { setError('Veuillez entrer le nom de la ville.'); return }
     const tickets = ticketTypes
       .filter(t => t.name.trim())
       .map(t => ({ name: t.name.trim(), price: parseInt(t.price) || 0, total: parseInt(t.qty) || 100, sold: 0 }))
@@ -274,9 +283,37 @@ function EventForm({ initial, submitLabel, onSubmit, onCancel, onUploadImage, to
         </div>
         <div style={{ ...groupStyle, flex: 1 }}>
           <label style={labelStyle}>Ville</label>
-          <select style={inputStyle} value={city} onChange={e => setCity(e.target.value)}>
-            {CITIES.map(c => <option key={c}>{c}</option>)}
+          <select style={inputStyle} value={citySelect} onChange={e => { setCitySelect(e.target.value); setCityReqSent(false) }}>
+            {allCities.map(c => <option key={c} value={c}>{c}</option>)}
+            <option value={OTHER_CITY}>Autre ville…</option>
           </select>
+          {citySelect === OTHER_CITY && (
+            <div style={{ marginTop: 8 }}>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  style={{ ...inputStyle, flex: 1 }}
+                  placeholder="Nom de la ville"
+                  value={customCity}
+                  onChange={e => { setCustomCity(e.target.value); setCityReqSent(false) }}
+                />
+                <button
+                  type="button"
+                  disabled={!customCity.trim() || cityReqSent}
+                  onClick={async () => {
+                    const result = await onRequestCity?.(customCity)
+                    if (result?.ok) { setCityReqSent(true); toast?.('Demande envoyée ! Les admins l\'examineront.', 'success') }
+                    else toast?.(result?.error || 'Erreur lors de la demande', 'error')
+                  }}
+                  style={{ flexShrink: 0, padding: '0 14px', borderRadius: 10, border: 'none', background: cityReqSent ? 'rgba(34,197,94,.2)' : 'linear-gradient(135deg,var(--purple),var(--purple2))', color: cityReqSent ? 'var(--success)' : '#fff', fontSize: '0.82rem', fontWeight: 600, cursor: (!customCity.trim() || cityReqSent) ? 'not-allowed' : 'pointer', opacity: (!customCity.trim() || cityReqSent) ? 0.6 : 1 }}
+                >
+                  {cityReqSent ? '✓ Demandé' : 'Demander'}
+                </button>
+              </div>
+              <p style={{ color: 'var(--muted)', fontSize: '0.75rem', marginTop: 5 }}>
+                Votre événement sera publié. Les admins ajouteront la ville à la liste.
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -521,16 +558,19 @@ function AttendeesTab({ myEvents, organizerOrders, onCheckin, onRefund, loading,
 }
 
 // ── Admin Tab ─────────────────────────────────────────────────
-function AdminTab({ applications, onPromote, onReject, onRefresh, onLoadVerifRequests, onApproveVerif, onDenyVerif }) {
+function AdminTab({ applications, onPromote, onReject, onRefresh, onLoadVerifRequests, onApproveVerif, onDenyVerif, onLoadCityRequests, onApproveCityRequest, onDenyCityRequest }) {
   const [busy, setBusy] = useState({})
   const [verifRequests, setVerifRequests] = useState([])
   const [denyTarget, setDenyTarget] = useState(null)
   const [denyReason, setDenyReason] = useState('')
   const [verifBusy, setVerifBusy] = useState({})
+  const [cityRequests, setCityRequests] = useState([])
+  const [cityBusy, setCityBusy] = useState({})
 
-  // Load verification requests on mount
+  // Load verification + city requests on mount
   useEffect(() => {
     onLoadVerifRequests?.().then(setVerifRequests)
+    onLoadCityRequests?.().then(setCityRequests)
   }, [])
 
   const refreshVerif = () => onLoadVerifRequests?.().then(setVerifRequests)
@@ -607,6 +647,54 @@ function AdminTab({ applications, onPromote, onReject, onRefresh, onLoadVerifReq
                       style={{ padding: '5px 10px', borderRadius: 8, border: '1px solid rgba(34,197,94,.4)', background: 'rgba(34,197,94,.12)', color: 'var(--success)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600, opacity: verifBusy[r.user_id] ? 0.5 : 1 }}
                     >{verifBusy[r.user_id] ? '…' : '✓ Approuver'}</button>
                   </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── City requests ── */}
+      <div style={{ marginBottom: 24, paddingTop: 20, borderTop: '1px solid var(--border)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <p style={{ color: 'var(--muted)', fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
+            🌍 Demandes de ville ({cityRequests.length})
+          </p>
+          <button onClick={() => onLoadCityRequests?.().then(setCityRequests)} style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 12px', color: 'var(--muted)', cursor: 'pointer', fontSize: '0.78rem' }}>↻</button>
+        </div>
+        {cityRequests.length === 0 ? (
+          <p style={{ color: 'var(--muted)', fontSize: '0.82rem' }}>Aucune demande de ville en attente.</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {cityRequests.map(r => (
+              <div key={r.id} style={{ background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>🌍 {r.name}</div>
+                  <div style={{ color: 'var(--muted)', fontSize: '0.75rem', marginTop: 2 }}>
+                    Demandé par {r.profiles?.name || r.profiles?.email || 'Inconnu'}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                  <button
+                    disabled={cityBusy[r.id]}
+                    onClick={async () => {
+                      setCityBusy(b => ({ ...b, [r.id]: true }))
+                      const ok = await onDenyCityRequest?.(r.id)
+                      setCityBusy(b => ({ ...b, [r.id]: false }))
+                      if (ok) setCityRequests(prev => prev.filter(x => x.id !== r.id))
+                    }}
+                    style={{ padding: '5px 10px', borderRadius: 8, border: '1px solid rgba(239,68,68,.4)', background: 'rgba(239,68,68,.1)', color: 'var(--danger)', cursor: 'pointer', fontSize: '0.75rem' }}
+                  >✗ Refuser</button>
+                  <button
+                    disabled={cityBusy[r.id]}
+                    onClick={async () => {
+                      setCityBusy(b => ({ ...b, [r.id]: true }))
+                      const ok = await onApproveCityRequest?.(r.id, r.name)
+                      setCityBusy(b => ({ ...b, [r.id]: false }))
+                      if (ok) setCityRequests(prev => prev.filter(x => x.id !== r.id))
+                    }}
+                    style={{ padding: '5px 10px', borderRadius: 8, border: '1px solid rgba(34,197,94,.4)', background: 'rgba(34,197,94,.12)', color: 'var(--success)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}
+                  >{cityBusy[r.id] ? '…' : '✓ Approuver'}</button>
                 </div>
               </div>
             ))}
@@ -780,6 +868,8 @@ export function OrganizerModal({
   onPromote, onReject, onLoadApplications, onUploadImage,
   onInvite, onLoadInvitations,
   onLoadVerifRequests, onApproveVerif, onDenyVerif,
+  onRequestCity, onLoadCityRequests, onApproveCityRequest, onDenyCityRequest,
+  cities,
   loading = {}, errors = {},
   toast,
 }) {
@@ -836,6 +926,8 @@ export function OrganizerModal({
             <EventForm
               initial={editingEvent}
               onUploadImage={onUploadImage}
+              onRequestCity={onRequestCity}
+              cities={cities}
               submitLabel="💾 Sauvegarder les modifications"
               onSubmit={async (data) => {
                 const ok = await onUpdate(editingEvent.id, data)
@@ -851,6 +943,8 @@ export function OrganizerModal({
         {tab === 'create' && (
           <EventForm
             onUploadImage={onUploadImage}
+            onRequestCity={onRequestCity}
+            cities={cities}
             submitLabel="🚀 Publier l'événement"
             onSubmit={async (data) => {
               const created = await onCreate(data)
@@ -890,6 +984,9 @@ export function OrganizerModal({
             onLoadVerifRequests={onLoadVerifRequests}
             onApproveVerif={onApproveVerif}
             onDenyVerif={onDenyVerif}
+            onLoadCityRequests={onLoadCityRequests}
+            onApproveCityRequest={onApproveCityRequest}
+            onDenyCityRequest={onDenyCityRequest}
           />
         )}
       </ModalBody>

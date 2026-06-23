@@ -25,16 +25,18 @@ function App() {
   const [filterCity,      setFilterCity]      = useState('')
   const [filterCategory,  setFilterCategory]  = useState('')
   const [sortBy,          setSortBy]          = useState('date')
+  const [cities,          setCities]          = useState([])
 
   const open  = (m) => setModal(m)
   const close = () => setModal(null)
 
-  // ── Service worker registration ────────────────────────────
+  // ── Service worker + cities ────────────────────────────────
   useEffect(() => {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(console.error)
     }
-  }, [])
+    store.loadCities().then(list => { if (list?.length) setCities(list) })
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── PayDunya return handling ───────────────────────────────
   useEffect(() => {
@@ -377,6 +379,25 @@ function App() {
         onUploadImage={store.uploadEventImage}
         onInvite={store.inviteToEvent}
         onLoadInvitations={store.loadInvitations}
+        cities={cities}
+        onRequestCity={async (name) => {
+          const result = await store.requestCity(name)
+          if (!result?.ok) toast(result?.error || 'Erreur lors de la demande', 'error')
+          return result
+        }}
+        onLoadCityRequests={store.loadCityRequests}
+        onApproveCityRequest={async (id, name) => {
+          const ok = await store.approveCityRequest(id, name)
+          if (ok) { toast(`Ville "${name}" ajoutée ✓`, 'success'); store.loadCities().then(l => { if (l?.length) setCities(l) }) }
+          else toast('Impossible d\'approuver', 'error')
+          return ok
+        }}
+        onDenyCityRequest={async (id) => {
+          const ok = await store.denyCityRequest(id)
+          if (ok) toast('Demande refusée.', 'info')
+          else toast('Impossible de refuser', 'error')
+          return ok
+        }}
         onLoadVerifRequests={store.loadVerificationRequests}
         onApproveVerif={async (userId) => {
           const ok = await store.approveVerification(userId)

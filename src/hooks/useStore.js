@@ -1079,6 +1079,46 @@ export function useStore() {
     return true
   }, [])
 
+  // ── CITIES ─────────────────────────────────────────────────
+  const loadCities = useCallback(async () => {
+    const { data } = await supabase.from('cities').select('name').order('name')
+    return (data || []).map(r => r.name)
+  }, [])
+
+  const requestCity = useCallback(async (name) => {
+    if (!user) return { ok: false, error: 'Non connecté' }
+    const trimmed = name.trim()
+    if (!trimmed) return { ok: false, error: 'Nom de ville requis' }
+    const { error } = await supabase.from('city_requests').insert({ name: trimmed, requested_by: user.id })
+    if (error) return { ok: false, error: error.message }
+    return { ok: true }
+  }, [user])
+
+  const loadCityRequests = useCallback(async () => {
+    const { data } = await supabase
+      .from('city_requests')
+      .select('id, name, status, created_at, profiles:requested_by(name, email)')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true })
+    return data || []
+  }, [])
+
+  const approveCityRequest = useCallback(async (requestId, cityName) => {
+    const { error: insertErr } = await supabase.from('cities').insert({ name: cityName }).select().single()
+    if (insertErr && !insertErr.message.includes('duplicate')) {
+      console.error('approveCityRequest insert:', insertErr); return false
+    }
+    const { error } = await supabase.from('city_requests').update({ status: 'approved' }).eq('id', requestId)
+    if (error) { console.error('approveCityRequest update:', error); return false }
+    return true
+  }, [])
+
+  const denyCityRequest = useCallback(async (requestId) => {
+    const { error } = await supabase.from('city_requests').update({ status: 'denied' }).eq('id', requestId)
+    if (error) { console.error('denyCityRequest:', error); return false }
+    return true
+  }, [])
+
   // ── INVITATIONS ────────────────────────────────────────────
   const inviteToEvent = useCallback(async (eventId, email, eventTitle, eventDate, eventCity) => {
     if (!user) return { ok: false, error: 'Non connecté' }
@@ -1167,6 +1207,12 @@ export function useStore() {
     uploadEventImage,
     subscribePush,
     unsubscribePush,
+
+    loadCities,
+    requestCity,
+    loadCityRequests,
+    approveCityRequest,
+    denyCityRequest,
 
     inviteToEvent,
     loadInvitations,
