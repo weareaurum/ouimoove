@@ -52,9 +52,22 @@
 
 .hint { color: var(--muted); font-size: 0.85rem; text-align: center; padding: 24px 0; line-height: 1.6; }
 
-@media (max-width: 520px) {
-  .tabBar { gap: 2px; }
-  .tab { font-size: 0.75rem; padding: 7px 6px; min-width: 70px; }
+@media (max-width: 600px) {
+  /* Scrollable tab bar instead of wrapping */
+  .tabBar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 4px;
+    gap: 3px;
+  }
+  .tabBar::-webkit-scrollbar { display: none; }
+  .tab { flex: 0 0 auto; font-size: 0.75rem; padding: 7px 10px; min-width: unset; white-space: nowrap; }
+
   .formRow { flex-direction: column; gap: 0; }
   .ticketTypeRow { flex-wrap: wrap; }
+  .statsGrid { grid-template-columns: repeat(2, 1fr); }
+  .eventRow { flex-wrap: wrap; gap: 8px; }
+  .attendeeRow { flex-wrap: wrap; }
 }

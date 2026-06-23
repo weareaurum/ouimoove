@@ -41,6 +41,7 @@
 }
 .logoText span { -webkit-text-fill-color: var(--orange); }
 
+/* ── Desktop nav buttons ── */
 .right {
   display: flex;
   align-items: center;
@@ -48,7 +49,6 @@
   flex-wrap: wrap;
 }
 
-/* shared btn base */
 .btnGhost,
 .btnPrimary,
 .btnPurple {
@@ -71,7 +71,6 @@
   color: var(--muted);
   border: 1px solid var(--border);
 }
-
 .btnGhost:hover {
   color: var(--text);
   border-color: var(--purple);
@@ -83,7 +82,6 @@
   color: #fff;
   box-shadow: 0 4px 16px rgba(255,107,53,.3);
 }
-
 .btnPrimary:hover {
   box-shadow: 0 6px 22px rgba(255,107,53,.4);
   transform: translateY(-1px);
@@ -94,7 +92,6 @@
   color: #fff;
   box-shadow: 0 4px 16px rgba(124,58,237,.3);
 }
-
 .btnPurple:hover {
   box-shadow: 0 6px 22px rgba(124,58,237,.45);
   transform: translateY(-1px);
@@ -102,37 +99,98 @@
 
 .badge {
   position: absolute;
-  top: -6px;
-  right: -6px;
-  width: 18px;
-  height: 18px;
+  top: -6px; right: -6px;
+  width: 18px; height: 18px;
   border-radius: 50%;
   background: var(--orange);
   color: #fff;
   font-size: 0.65rem;
   font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex; align-items: center; justify-content: center;
 }
 
-@media (max-width: 680px) {
-  .nav {
-    padding: 0 1rem;
-    height: 80px;
-  }
+/* ── Mobile elements (hidden on desktop) ── */
+.mobileRight { display: none; align-items: center; gap: 8px; }
 
-  .logo img {
-    height: 68px;
-  }
+.hamburger {
+  display: flex; flex-direction: column; justify-content: center;
+  gap: 5px; width: 38px; height: 38px;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 10px; cursor: pointer; padding: 8px; transition: all .2s;
+}
+.hamburger:hover { border-color: var(--purple); }
 
-  .label {
-    display: none;
-  }
+.bar {
+  display: block; width: 100%; height: 2px;
+  background: var(--muted); border-radius: 2px; transition: all .25s;
+}
+.barOpen1 {
+  display: block; width: 100%; height: 2px;
+  background: var(--text); border-radius: 2px;
+  transform: translateY(7px) rotate(45deg); transition: all .25s;
+}
+.barOpen2 {
+  display: block; width: 100%; height: 2px;
+  background: var(--text); border-radius: 2px;
+  opacity: 0; transition: all .25s;
+}
+.barOpen3 {
+  display: block; width: 100%; height: 2px;
+  background: var(--text); border-radius: 2px;
+  transform: translateY(-7px) rotate(-45deg); transition: all .25s;
+}
 
-  .btnGhost,
-  .btnPrimary,
-  .btnPurple {
-    padding: 7px 10px;
-  }
+/* ── Mobile drawer ── */
+.drawer {
+  position: fixed; top: 80px; left: 0; right: 0; z-index: 99;
+  background: rgba(10,10,15,0.97);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 16px;
+  animation: slideDown .2s ease;
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.drawerBtn, .drawerBtnPrimary, .drawerBtnPurple, .drawerBtnDanger {
+  width: 100%; padding: 13px 16px;
+  border-radius: 12px; border: 1px solid var(--border);
+  font-family: var(--font-body); font-size: 0.95rem; font-weight: 500;
+  cursor: pointer; text-align: left; transition: all .15s;
+}
+.drawerBtn { background: var(--bg3); color: var(--text); }
+.drawerBtn:hover { background: var(--bg2); border-color: var(--purple); }
+.drawerBtnPrimary {
+  background: linear-gradient(135deg, var(--orange), #e85d04);
+  color: #fff; border-color: transparent;
+  box-shadow: 0 4px 16px rgba(255,107,53,.3);
+}
+.drawerBtnPurple {
+  background: linear-gradient(135deg, var(--purple), var(--purple2));
+  color: #fff; border-color: transparent;
+  box-shadow: 0 4px 16px rgba(124,58,237,.3);
+}
+.drawerBtnDanger { background: var(--bg3); color: var(--danger); border-color: rgba(239,68,68,.3); }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .nav { padding: 0 1rem; height: 80px; }
+  .logo img { height: 68px; }
+  .right { display: none; }
+  .mobileRight { display: flex; }
+}
+
+@media (min-width: 769px) {
+  .drawer { display: none; }
+  .mobileRight { display: none; }
+}
+
+/* Tablet: show labels but compress slightly */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .label { display: none; }
+  .btnGhost, .btnPrimary, .btnPurple { padding: 7px 11px; }
+  .nav { padding: 0 1.25rem; }
 }
