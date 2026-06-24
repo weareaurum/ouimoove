@@ -32,30 +32,135 @@ function TicketCard({ purchase, myListings, toast, onListForResale, onCancelList
     }
   }
 
-  const downloadTicket = () => {
-    const lines = [
-      'OuiMoove — Billet Électronique',
-      '================================',
-      '',
-      `Référence   : ${purchase.id}`,
-      `Acheteur    : ${purchase.userName}`,
-      `Date achat  : ${new Date(purchase.date).toLocaleDateString('fr-FR')}`,
-      `Méthode     : ${purchase.method}`,
-      '',
-      'Billets :',
-      ...purchase.items.map(i => `  • ${i.eventTitle} — ${i.ticketName} ×${i.qty} = ${(i.price * i.qty).toLocaleString('fr-FR')} FCFA`),
-      '',
-      `TOTAL : ${purchase.total.toLocaleString('fr-FR')} FCFA`,
-      '',
-      'Merci pour votre achat sur OuiMoove !',
-    ]
-    const blob = new Blob([lines.join('\n')], { type: 'text/plain' })
-    const a = document.createElement('a')
-    a.href = URL.createObjectURL(blob)
-    a.download = `billet-${purchase.id}.txt`
-    a.click()
-    URL.revokeObjectURL(a.href)
-    toast('Billet téléchargé ✓', 'success')
+  const downloadTicket = async () => {
+    try {
+      const ticketData = [
+        `OuiMoove`,
+        `REF:${purchase.id}`,
+        purchase.items.map(i => `${i.eventTitle}|${i.ticketName}|x${i.qty}`).join(';'),
+        `TOTAL:${purchase.total}FCFA`,
+      ].join('\n')
+
+      // Build a canvas with QR + ticket info
+      const qrDataUrl = await QRCode.toDataURL(ticketData, {
+        width: 300,
+        margin: 2,
+        color: { dark: '#7c3aed', light: '#ffffff' },
+      })
+
+      const canvas = document.createElement('canvas')
+      canvas.width = 600
+      canvas.height = 820
+      const ctx = canvas.getContext('2d')
+
+      // Background
+      ctx.fillStyle = '#15151f'
+      ctx.fillRect(0, 0, 600, 820)
+
+      // Header bar
+      const grad = ctx.createLinearGradient(0, 0, 600, 0)
+      grad.addColorStop(0, '#7c3aed')
+      grad.addColorStop(1, '#ff6b35')
+      ctx.fillStyle = grad
+      ctx.fillRect(0, 0, 600, 8)
+
+      // Logo text
+      ctx.fillStyle = '#ffffff'
+      ctx.font = 'bold 28px Arial'
+      ctx.textAlign = 'center'
+      ctx.fillText('OuiMoove', 300, 56)
+
+      ctx.fillStyle = '#a78bfa'
+      ctx.font = '14px Arial'
+      ctx.fillText('Billet Électronique', 300, 80)
+
+      // Dashed separator
+      ctx.setLineDash([8, 6])
+      ctx.strokeStyle = 'rgba(255,255,255,0.12)'
+      ctx.lineWidth = 1.5
+      ctx.beginPath(); ctx.moveTo(40, 100); ctx.lineTo(560, 100); ctx.stroke()
+      ctx.setLineDash([])
+
+      // Event info
+      const firstItem = purchase.items[0]
+      ctx.fillStyle = '#ffffff'
+      ctx.font = 'bold 20px Arial'
+      ctx.textAlign = 'center'
+      const title = firstItem?.eventTitle || 'Événement'
+      ctx.fillText(title.length > 38 ? title.slice(0, 38) + '…' : title, 300, 134)
+
+      ctx.fillStyle = '#a78bfa'
+      ctx.font = '13px Arial'
+      const ticketNames = purchase.items.map(i => `${i.ticketName} ×${i.qty}`).join(' · ')
+      ctx.fillText(ticketNames, 300, 158)
+
+      // QR Code
+      const qrImg = new Image()
+      await new Promise(resolve => { qrImg.onload = resolve; qrImg.src = qrDataUrl })
+      const qrSize = 280
+      const qrX = (600 - qrSize) / 2
+      // White rounded rect behind QR
+      ctx.fillStyle = '#ffffff'
+      ctx.beginPath()
+      ctx.roundRect(qrX - 12, 176, qrSize + 24, qrSize + 24, 16)
+      ctx.fill()
+      ctx.drawImage(qrImg, qrX, 188, qrSize, qrSize)
+
+      // Scan label
+      ctx.fillStyle = '#6b7280'
+      ctx.font = '12px Arial'
+      ctx.fillText('Scanner à l\'entrée', 300, 494)
+
+      // Info rows
+      const infoY = 524
+      const drawInfo = (label, value, y) => {
+        ctx.textAlign = 'left'
+        ctx.fillStyle = '#6b7280'
+        ctx.font = '12px Arial'
+        ctx.fillText(label, 60, y)
+        ctx.textAlign = 'right'
+        ctx.fillStyle = '#e5e7eb'
+        ctx.font = '13px Arial'
+        ctx.fillText(value, 540, y)
+      }
+
+      drawInfo('Référence', purchase.id.slice(0, 8).toUpperCase(), infoY)
+      drawInfo('Date d\'achat', new Date(purchase.date).toLocaleDateString('fr-FR'), infoY + 34)
+      drawInfo('Méthode', purchase.method || 'Carte', infoY + 68)
+      drawInfo('Total', `${purchase.total.toLocaleString('fr-FR')} FCFA`, infoY + 102)
+
+      // Bottom dashed
+      ctx.setLineDash([8, 6])
+      ctx.strokeStyle = 'rgba(255,255,255,0.12)'
+      ctx.beginPath(); ctx.moveTo(40, 714); ctx.lineTo(560, 714); ctx.stroke()
+      ctx.setLineDash([])
+
+      ctx.fillStyle = '#4b5563'
+      ctx.font = '12px Arial'
+      ctx.textAlign = 'center'
+      ctx.fillText('Merci pour votre achat sur OuiMoove !', 300, 744)
+
+      ctx.fillStyle = '#374151'
+      ctx.font = '11px Arial'
+      ctx.fillText('ouimoove.com', 300, 764)
+
+      // Bottom accent bar
+      ctx.fillStyle = grad
+      ctx.fillRect(0, 812, 600, 8)
+
+      // Download
+      canvas.toBlob(blob => {
+        const a = document.createElement('a')
+        a.href = URL.createObjectURL(blob)
+        a.download = `billet-ouimoove-${purchase.id.slice(0, 8)}.png`
+        a.click()
+        URL.revokeObjectURL(a.href)
+      }, 'image/png')
+
+      toast('Billet téléchargé ✓', 'success')
+    } catch {
+      toast('Erreur lors du téléchargement', 'error')
+    }
   }
 
   const submitResale = async (item) => {
