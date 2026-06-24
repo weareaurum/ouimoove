@@ -1,23 +1,22 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import QRCode from 'qrcode'
 import { Modal, ModalHeader, ModalBody } from '../Modal.jsx'
 import styles from './MyTicketsModal.module.css'
 
 function TicketCard({ purchase, myListings, toast, onListForResale, onCancelListing }) {
-  const qrRef      = useRef(null)
+  const [qrDataUrl,  setQrDataUrl]  = useState('')
   const [showResale, setShowResale] = useState(false)
   const [askPrice,   setAskPrice]   = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  // Auto-render QR on mount
+  // Generate QR as data URL — no canvas ref issues
   useEffect(() => {
-    if (!qrRef.current) return
     const payload = `OUIMOOVE|${purchase.id}|${purchase.items[0]?.eventTitle || ''}|${purchase.total}FCFA`
-    QRCode.toCanvas(qrRef.current, payload, {
-      width: 160,
+    QRCode.toDataURL(payload, {
+      width: 180,
       margin: 1,
       color: { dark: '#1a0a2e', light: '#ffffff' },
-    }).catch(() => {})
+    }).then(setQrDataUrl).catch(console.error)
   }, [purchase.id])
 
   const submitResale = async (item) => {
@@ -97,7 +96,7 @@ function TicketCard({ purchase, myListings, toast, onListForResale, onCancelList
       {/* ── QR section ── */}
       <div className={styles.qrSection}>
         <div className={styles.qrWrap}>
-          <canvas ref={qrRef} />
+          {qrDataUrl && <img src={qrDataUrl} alt="QR Code" width={160} height={160} style={{ display: 'block', borderRadius: 8 }} />}
         </div>
         <div className={styles.qrMeta}>
           <div className={styles.qrLabel}>Scanner à l'entrée</div>

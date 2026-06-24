@@ -658,7 +658,7 @@ function AttendeesTab({ myEvents, organizerOrders, onCheckin, onCheckinByRef, on
           <button
             onClick={handleManualScan}
             disabled={scanning || !scanRef.trim()}
-            style={{ padding: '0 16px', borderRadius: 10, border: 'none', background: 'var(--bg2)', color: 'var(--text)', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem', opacity: scanning || !scanRef.trim() ? 0.5 : 1, border: '1px solid var(--border)' }}
+            style={{ padding: '0 16px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg2)', color: 'var(--text)', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem', opacity: scanning || !scanRef.trim() ? 0.5 : 1 }}
           >
             {scanning ? '…' : 'Chercher'}
           </button>

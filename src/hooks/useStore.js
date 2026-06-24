@@ -282,6 +282,17 @@ export function useStore() {
     setOrganizerStats(data)
   }, [])
 
+  // ── REALTIME: live ticket sold count ───────────────────────
+  useEffect(() => {
+    const channel = supabase
+      .channel('ticket_types_sold')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'ticket_types' }, () => {
+        loadEvents()
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [loadEvents])
+
   // ── AUTH STATE ─────────────────────────────────────────────
   useEffect(() => {
     loadEvents()
