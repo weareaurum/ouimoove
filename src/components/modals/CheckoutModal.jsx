@@ -2,10 +2,37 @@ import { useState } from 'react'
 import { Modal, ModalHeader, ModalBody } from '../Modal.jsx'
 import styles from './CheckoutModal.module.css'
 
+const TmoneyLogo = () => (
+  <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="44" height="44" rx="10" fill="#1A3F8F"/>
+    <text x="22" y="22" textAnchor="middle" dominantBaseline="middle" fontFamily="Arial Black, Arial" fontWeight="900" fontSize="13" fill="#FFD700" letterSpacing="-0.5">mixx</text>
+    <circle cx="34" cy="34" r="8" fill="#FFD700"/>
+    <text x="34" y="34" textAnchor="middle" dominantBaseline="middle" fontFamily="Arial" fontWeight="900" fontSize="6" fill="#1A3F8F">TG</text>
+  </svg>
+)
+
+const FloozLogo = () => (
+  <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="44" height="44" rx="10" fill="#F26522"/>
+    <text x="22" y="17" textAnchor="middle" dominantBaseline="middle" fontFamily="Arial" fontWeight="700" fontSize="7" fill="white">MOOV Money</text>
+    <text x="22" y="30" textAnchor="middle" dominantBaseline="middle" fontFamily="Arial Black, Arial" fontWeight="900" fontSize="13" fill="#1A6FBF">FLOOZ</text>
+  </svg>
+)
+
+const CardIcon = () => (
+  <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="44" height="44" rx="10" fill="rgba(124,58,237,0.15)" stroke="rgba(124,58,237,0.3)" strokeWidth="1"/>
+    <rect x="8" y="14" width="28" height="18" rx="3" stroke="#7c3aed" strokeWidth="1.5" fill="none"/>
+    <rect x="8" y="19" width="28" height="4" fill="#7c3aed" opacity="0.4"/>
+    <rect x="10" y="26" width="8" height="2" rx="1" fill="#7c3aed"/>
+    <rect x="20" y="26" width="6" height="2" rx="1" fill="#7c3aed" opacity="0.5"/>
+  </svg>
+)
+
 const METHODS = [
-  { id: 'card',   icon: '💳', label: 'Carte' },
-  { id: 'tmoney', icon: '📱', label: 'T-Money' },
-  { id: 'flooz',  icon: '🟡', label: 'Flooz' },
+  { id: 'card',   Logo: CardIcon,   label: 'Carte bancaire' },
+  { id: 'tmoney', Logo: TmoneyLogo, label: 'Tmoney' },
+  { id: 'flooz',  Logo: FloozLogo,  label: 'Flooz' },
 ]
 
 const PROMO_CODES = {
@@ -147,7 +174,7 @@ export function CheckoutModal({ open, cart, cartTotal, onClose, onConfirm }) {
                   className={[styles.method, method === m.id ? styles.selected : ''].join(' ')}
                   onClick={() => { setMethod(m.id); setError('') }}
                 >
-                  <span className={styles.methodIcon}>{m.icon}</span>
+                  <span className={styles.methodIcon}><m.Logo /></span>
                   {m.label}
                 </button>
               ))}

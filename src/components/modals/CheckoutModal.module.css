@@ -29,27 +29,30 @@
 }
 .method {
   flex: 1;
-  padding: 10px 8px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
+  padding: 12px 8px;
+  border-radius: 12px;
+  border: 2px solid var(--border);
   background: var(--bg3);
   cursor: pointer;
   text-align: center;
-  font-size: 0.82rem;
+  font-size: 0.75rem;
+  font-weight: 600;
   color: var(--muted);
   transition: all .2s;
   font-family: var(--font-body);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
 }
-.method:hover, .selected {
+.method:hover { border-color: var(--purple); background: rgba(124,58,237,.08); color: var(--text); }
+.selected {
   border-color: var(--purple);
-  background: rgba(124,58,237,.15);
+  background: rgba(124,58,237,.12);
   color: var(--purple3);
+  box-shadow: 0 0 0 3px rgba(124,58,237,.15);
 }
-.methodIcon { font-size: 1.4rem; }
+.methodIcon { display: flex; align-items: center; justify-content: center; }
 
 .fields { margin-bottom: 8px; }
 
