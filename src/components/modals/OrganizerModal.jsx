@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Modal, ModalHeader, ModalBody } from '../Modal.jsx'
+import { QRScanner } from '../QRScanner.jsx'
 import { CATEGORIES, CITIES } from '../../data/events.js'
 import { formatDate } from '../../utils/helpers.js'
 
@@ -452,128 +453,246 @@ function MyEventsTab({ myEvents, onDelete, onEdit, loading, errors }) {
   )
 }
 
+// ── Check-in confirm dialog ────────────────────────────────────
+function CheckinDialog({ order, eventId, onConfirm, onClose }) {
+  const items    = order.items.filter(i => !eventId || i.eventId === eventId)
+  const item     = items[0]
+  const remaining = item ? item.qty - (item.checkedInCount || 0) : 0
+  const [count, setCount] = useState(remaining > 0 ? 1 : 0)
+  const [busy,  setBusy]  = useState(false)
+  const [done,  setDone]  = useState(null)
+
+  const confirm = async () => {
+    setBusy(true)
+    const result = await onConfirm(item.id, count)
+    setBusy(false)
+    if (result.ok) setDone(result)
+    else setDone({ error: result.error })
+  }
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 10000,
+      background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)',
+      display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+    }} onClick={e => e.target === e.currentTarget && onClose()}>
+      <div style={{
+        background: 'var(--bg2)', borderRadius: '24px 24px 0 0',
+        padding: '28px 24px 40px', width: '100%', maxWidth: 480,
+        border: '1px solid var(--border)', borderBottom: 'none',
+      }}>
+        {done ? (
+          <div style={{ textAlign: 'center', padding: '16px 0' }}>
+            {done.error ? (
+              <>
+                <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>❌</div>
+                <div style={{ color: 'var(--danger)', fontWeight: 700 }}>{done.error}</div>
+              </>
+            ) : (
+              <>
+                <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>✅</div>
+                <div style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--success)', marginBottom: 6 }}>
+                  {done.validated} billet{done.validated > 1 ? 's' : ''} validé{done.validated > 1 ? 's' : ''} !
+                </div>
+                <div style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>
+                  {order.userName} · {done.newCount}/{item.qty} utilisé{done.newCount > 1 ? 's' : ''}
+                </div>
+              </>
+            )}
+            <button onClick={onClose} style={{ marginTop: 20, padding: '10px 32px', borderRadius: 12, border: 'none', background: 'var(--bg3)', color: 'var(--text)', cursor: 'pointer', fontWeight: 600 }}>
+              Fermer
+            </button>
+          </div>
+        ) : remaining <= 0 ? (
+          <div style={{ textAlign: 'center', padding: '16px 0' }}>
+            <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>⚠️</div>
+            <div style={{ fontWeight: 700, color: '#eab308', marginBottom: 6 }}>Billet déjà entièrement utilisé</div>
+            <div style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>{order.userName} · {item?.qty}/{item?.qty} billets validés</div>
+            <button onClick={onClose} style={{ marginTop: 20, padding: '10px 32px', borderRadius: 12, border: 'none', background: 'var(--bg3)', color: 'var(--text)', cursor: 'pointer', fontWeight: 600 }}>Fermer</button>
+          </div>
+        ) : (
+          <>
+            {/* Holder info */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 22 }}>
+              <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'linear-gradient(135deg, var(--purple), var(--orange))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1.1rem', flexShrink: 0 }}>
+                {(order.userName || '?')[0].toUpperCase()}
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: '1rem' }}>{order.userName || 'Anonyme'}</div>
+                <div style={{ color: 'var(--muted)', fontSize: '0.8rem' }}>{item?.ticketName} · {item?.qty} billet{item?.qty > 1 ? 's' : ''} achetés</div>
+              </div>
+            </div>
+
+            {/* Progress */}
+            <div style={{ background: 'var(--bg3)', borderRadius: 12, padding: '12px 16px', marginBottom: 22 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: 'var(--muted)', marginBottom: 8 }}>
+                <span>Billets utilisés</span>
+                <span style={{ color: 'var(--text)', fontWeight: 700 }}>{item.checkedInCount || 0} / {item.qty}</span>
+              </div>
+              <div style={{ height: 6, background: 'var(--bg2)', borderRadius: 4, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${((item.checkedInCount || 0) / item.qty) * 100}%`, background: 'linear-gradient(90deg, var(--purple), var(--success))', borderRadius: 4 }} />
+              </div>
+              <div style={{ marginTop: 8, fontSize: '0.8rem', color: 'var(--success)', fontWeight: 600 }}>
+                {remaining} billet{remaining > 1 ? 's' : ''} restant{remaining > 1 ? 's' : ''}
+              </div>
+            </div>
+
+            {/* Count selector */}
+            {item.qty > 1 && (
+              <div style={{ marginBottom: 22 }}>
+                <div style={{ fontSize: '0.82rem', color: 'var(--muted)', marginBottom: 10 }}>Combien de billets valider ?</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <button onClick={() => setCount(c => Math.max(1, c - 1))} style={{ width: 40, height: 40, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg3)', color: 'var(--text)', fontSize: '1.2rem', cursor: 'pointer' }}>−</button>
+                  <div style={{ flex: 1, textAlign: 'center', fontSize: '1.8rem', fontWeight: 800, color: 'var(--text)' }}>{count}</div>
+                  <button onClick={() => setCount(c => Math.min(remaining, c + 1))} style={{ width: 40, height: 40, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg3)', color: 'var(--text)', fontSize: '1.2rem', cursor: 'pointer' }}>+</button>
+                </div>
+                <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
+                  {Array.from({ length: remaining }, (_, i) => i + 1).map(n => (
+                    <button key={n} onClick={() => setCount(n)} style={{ padding: '4px 12px', borderRadius: 8, border: `1px solid ${count === n ? 'var(--purple)' : 'var(--border)'}`, background: count === n ? 'rgba(124,58,237,.15)' : 'var(--bg3)', color: count === n ? 'var(--purple3)' : 'var(--muted)', cursor: 'pointer', fontSize: '0.82rem', fontWeight: count === n ? 700 : 400 }}>
+                      {n === remaining ? `Tous (${n})` : n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <button onClick={confirm} disabled={busy} style={{
+              width: '100%', padding: '14px', borderRadius: 14, border: 'none',
+              background: 'linear-gradient(135deg, var(--purple), var(--purple2))',
+              color: '#fff', fontWeight: 700, fontSize: '1rem', cursor: 'pointer',
+              boxShadow: '0 4px 20px rgba(124,58,237,.35)', opacity: busy ? 0.7 : 1,
+            }}>
+              {busy ? 'Validation…' : `✓ Valider ${count} billet${count > 1 ? 's' : ''}`}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── Attendees Tab ─────────────────────────────────────────────
-function AttendeesTab({ myEvents, organizerOrders, onCheckin, onCheckinByRef, onRefund, loading, errors, onRefresh }) {
-  const [selectedId, setSelectedId] = useState(myEvents[0]?.id ?? '')
-  const [search,     setSearch]     = useState('')
-  const [scanRef,    setScanRef]    = useState('')
-  const [scanResult, setScanResult] = useState(null) // { ok, already, order, error }
-  const [scanning,   setScanning]   = useState(false)
+function AttendeesTab({ myEvents, organizerOrders, onCheckin, onCheckinByRef, onCheckinPartial, onLookupByRef, onRefund, loading, errors, onRefresh }) {
+  const [selectedId,  setSelectedId]  = useState(myEvents[0]?.id ?? '')
+  const [search,      setSearch]      = useState('')
+  const [scanRef,     setScanRef]     = useState('')
+  const [scanResult,  setScanResult]  = useState(null)
+  const [scanning,    setScanning]    = useState(false)
+  const [showCamera,  setShowCamera]  = useState(false)
+  const [confirmOrder, setConfirmOrder] = useState(null)
 
   const attendees = organizerOrders.filter(p => p.items.some(i => i.eventId === selectedId))
-  const filtered = search.trim()
+  const filtered  = search.trim()
     ? attendees.filter(p =>
         p.userName.toLowerCase().includes(search.toLowerCase()) ||
         p.userEmail.toLowerCase().includes(search.toLowerCase()) ||
         p.id.toLowerCase().startsWith(search.toLowerCase()))
     : attendees
 
-  const total        = attendees.length
-  const checkedCount = attendees.filter(p => p.items.filter(i => i.eventId === selectedId).every(i => i.checkedIn)).length
-  const pct          = total > 0 ? Math.round((checkedCount / total) * 100) : 0
+  const totalTickets   = attendees.reduce((s, p) => s + p.items.filter(i => i.eventId === selectedId).reduce((ss, i) => ss + i.qty, 0), 0)
+  const validatedCount = attendees.reduce((s, p) => s + p.items.filter(i => i.eventId === selectedId).reduce((ss, i) => ss + (i.checkedInCount || 0), 0), 0)
+  const pct = totalTickets > 0 ? Math.round((validatedCount / totalTickets) * 100) : 0
 
-  const handleScan = async () => {
+  const handleManualScan = async () => {
     if (!scanRef.trim()) return
     setScanning(true)
     setScanResult(null)
-    const result = await onCheckinByRef(scanRef.trim(), selectedId)
-    setScanResult(result)
+    const order = onLookupByRef(scanRef.trim())
     setScanning(false)
-    if (result.ok || result.already) setScanRef('')
+    if (!order) { setScanResult({ error: 'Référence introuvable.' }); return }
+    setScanRef('')
+    setConfirmOrder(order)
+  }
+
+  const handleCameraScan = (data) => {
+    setShowCamera(false)
+    const order = onLookupByRef(data)
+    if (!order) { setScanResult({ error: 'Billet non reconnu ou non lié à cet événement.' }); return }
+    setConfirmOrder(order)
   }
 
   if (loading.orgOrders) return <Spinner />
 
   return (
     <div>
-      {/* ── Quick scan bar ── */}
-      <div style={{ background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px', marginBottom: 16 }}>
-        <div style={{ fontSize: '0.82rem', fontWeight: 700, marginBottom: 10, color: 'var(--text)' }}>🎫 Validation rapide par référence</div>
+      {/* ── Camera scanner fullscreen ── */}
+      {showCamera && <QRScanner onScan={handleCameraScan} onClose={() => setShowCamera(false)} />}
+
+      {/* ── Confirm dialog ── */}
+      {confirmOrder && (
+        <CheckinDialog
+          order={confirmOrder}
+          eventId={selectedId}
+          onConfirm={onCheckinPartial}
+          onClose={() => { setConfirmOrder(null); setScanResult(null) }}
+        />
+      )}
+
+      {/* ── Scan buttons ── */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+        <button
+          onClick={() => setShowCamera(true)}
+          style={{
+            flex: 1, padding: '13px', borderRadius: 12, border: 'none',
+            background: 'linear-gradient(135deg, var(--purple), var(--purple2))',
+            color: '#fff', fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            boxShadow: '0 4px 16px rgba(124,58,237,.3)',
+          }}
+        >
+          📷 Scanner un billet
+        </button>
+      </div>
+
+      {/* ── Manual ref lookup ── */}
+      <div style={{ background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 14px', marginBottom: 16 }}>
+        <div style={{ fontSize: '0.78rem', color: 'var(--muted)', marginBottom: 8 }}>Ou saisir la référence manuellement</div>
         <div style={{ display: 'flex', gap: 8 }}>
           <input
-            style={{ ...inputStyle, flex: 1, fontFamily: 'monospace', letterSpacing: '0.08em', textTransform: 'uppercase' }}
+            style={{ ...inputStyle, flex: 1, fontFamily: 'monospace', letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: '0.88rem' }}
             placeholder="Ex: A3F7B2C1"
             value={scanRef}
             onChange={e => { setScanRef(e.target.value.toUpperCase()); setScanResult(null) }}
-            onKeyDown={e => e.key === 'Enter' && handleScan()}
+            onKeyDown={e => e.key === 'Enter' && handleManualScan()}
           />
           <button
-            onClick={handleScan}
+            onClick={handleManualScan}
             disabled={scanning || !scanRef.trim()}
-            style={{ padding: '0 18px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, var(--purple), var(--purple2))', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: '0.88rem', opacity: scanning || !scanRef.trim() ? 0.6 : 1 }}
+            style={{ padding: '0 16px', borderRadius: 10, border: 'none', background: 'var(--bg2)', color: 'var(--text)', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem', opacity: scanning || !scanRef.trim() ? 0.5 : 1, border: '1px solid var(--border)' }}
           >
-            {scanning ? '…' : 'Valider'}
+            {scanning ? '…' : 'Chercher'}
           </button>
         </div>
-
-        {scanResult && (
-          <div style={{
-            marginTop: 10, padding: '10px 14px', borderRadius: 8,
-            background: scanResult.error   ? 'rgba(239,68,68,.1)'   :
-                        scanResult.already ? 'rgba(234,179,8,.1)'    : 'rgba(34,197,94,.1)',
-            border: `1px solid ${scanResult.error ? 'rgba(239,68,68,.3)' : scanResult.already ? 'rgba(234,179,8,.3)' : 'rgba(34,197,94,.3)'}`,
-          }}>
-            {scanResult.error && (
-              <span style={{ color: 'var(--danger)', fontSize: '0.85rem' }}>❌ {scanResult.error}</span>
-            )}
-            {scanResult.already && (
-              <div>
-                <span style={{ color: '#eab308', fontSize: '0.85rem', fontWeight: 700 }}>⚠️ Billet déjà validé</span>
-                <div style={{ fontSize: '0.78rem', color: 'var(--muted)', marginTop: 3 }}>
-                  {scanResult.order.userName} · {scanResult.order.items.map(i => `${i.ticketName}×${i.qty}`).join(', ')}
-                </div>
-              </div>
-            )}
-            {scanResult.ok && (
-              <div>
-                <span style={{ color: 'var(--success)', fontSize: '0.85rem', fontWeight: 700 }}>✅ Billet validé avec succès !</span>
-                <div style={{ fontSize: '0.78rem', color: 'var(--muted)', marginTop: 3 }}>
-                  {scanResult.order.userName} · {scanResult.order.items.map(i => `${i.ticketName}×${i.qty}`).join(', ')}
-                </div>
-              </div>
-            )}
-          </div>
+        {scanResult?.error && (
+          <div style={{ marginTop: 8, color: 'var(--danger)', fontSize: '0.82rem' }}>❌ {scanResult.error}</div>
         )}
       </div>
 
       {/* ── Progress bar ── */}
-      {total > 0 && (
-        <div style={{ marginBottom: 14 }}>
+      {totalTickets > 0 && (
+        <div style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--muted)', marginBottom: 6 }}>
-            <span><b style={{ color: 'var(--success)' }}>{checkedCount}</b> validé{checkedCount !== 1 ? 's' : ''} · <b style={{ color: 'var(--orange)' }}>{total - checkedCount}</b> en attente</span>
+            <span><b style={{ color: 'var(--success)' }}>{validatedCount}</b> / {totalTickets} billets validés</span>
             <span style={{ color: 'var(--text)', fontWeight: 700 }}>{pct}%</span>
           </div>
-          <div style={{ height: 6, background: 'var(--bg3)', borderRadius: 4, overflow: 'hidden' }}>
+          <div style={{ height: 8, background: 'var(--bg3)', borderRadius: 4, overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${pct}%`, background: 'linear-gradient(90deg, var(--purple), var(--success))', borderRadius: 4, transition: 'width .4s' }} />
           </div>
         </div>
       )}
 
-      {/* ── Filters ── */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
-        <div style={{ flex: 2, minWidth: 160 }}>
-          <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--muted)', marginBottom: 6 }}>Événement</label>
-          <select style={inputStyle} value={selectedId} onChange={e => { setSelectedId(e.target.value); setScanResult(null) }}>
-            {myEvents.map(e => <option key={e.id} value={e.id}>{e.title}</option>)}
-            {!myEvents.length && <option value="">Aucun événement</option>}
-          </select>
-        </div>
-        <div style={{ flex: 2, minWidth: 160 }}>
-          <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--muted)', marginBottom: 6 }}>Rechercher</label>
-          <input style={inputStyle} placeholder="Nom, email ou référence…" value={search} onChange={e => setSearch(e.target.value)} />
-        </div>
+      {/* ── Event + search filters ── */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
+        <select style={{ ...inputStyle, flex: 2, minWidth: 140 }} value={selectedId} onChange={e => { setSelectedId(e.target.value); setScanResult(null) }}>
+          {myEvents.map(e => <option key={e.id} value={e.id}>{e.title}</option>)}
+          {!myEvents.length && <option value="">Aucun événement</option>}
+        </select>
+        <input style={{ ...inputStyle, flex: 2, minWidth: 140 }} placeholder="Nom, email…" value={search} onChange={e => setSearch(e.target.value)} />
       </div>
-
-      {filtered.length > 0 && (
-        <div style={{ display: 'flex', gap: 16, marginBottom: 14, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '0.82rem', color: 'var(--muted)' }}><b style={{ color: 'var(--text)' }}>{filtered.length}</b> participant{filtered.length !== 1 ? 's' : ''}</span>
-          <span style={{ fontSize: '0.82rem', color: 'var(--muted)' }}><b style={{ color: 'var(--success)' }}>{checkedCount}</b> validé{checkedCount !== 1 ? 's' : ''}</span>
-          <span style={{ fontSize: '0.82rem', color: 'var(--muted)' }}><b style={{ color: 'var(--orange)' }}>{filtered.length - checkedCount}</b> en attente</span>
-        </div>
-      )}
 
       {errors.orgOrders && <ErrorBanner msg={errors.orgOrders} onRetry={onRefresh} />}
 
+      {/* ── Attendee list ── */}
       {!filtered.length ? (
         <p style={{ color: 'var(--muted)', fontSize: '0.85rem', textAlign: 'center', padding: '24px 0' }}>
           {search ? 'Aucun résultat.' : 'Aucun participant pour cet événement.'}
@@ -581,10 +700,12 @@ function AttendeesTab({ myEvents, organizerOrders, onCheckin, onCheckinByRef, on
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {filtered.map(p => {
-            const eventItems  = p.items.filter(i => i.eventId === selectedId)
-            const isCheckedIn = eventItems.length > 0 && eventItems.every(i => i.checkedIn)
-            const checkedInAt = eventItems.find(i => i.checkedInAt)?.checkedInAt
-            const isRefunded  = p.status === 'refunded'
+            const eventItems   = p.items.filter(i => i.eventId === selectedId)
+            const totalQty     = eventItems.reduce((s, i) => s + i.qty, 0)
+            const validatedQty = eventItems.reduce((s, i) => s + (i.checkedInCount || 0), 0)
+            const fullyIn      = validatedQty >= totalQty && totalQty > 0
+            const partialIn    = validatedQty > 0 && !fullyIn
+            const isRefunded   = p.status === 'refunded'
 
             return (
               <div key={p.id} style={{
@@ -592,43 +713,41 @@ function AttendeesTab({ myEvents, organizerOrders, onCheckin, onCheckinByRef, on
                 padding: '10px 0', borderBottom: '1px solid var(--border)',
                 opacity: isRefunded ? 0.55 : 1,
               }}>
-                <div style={{ width: 38, height: 38, borderRadius: '50%', flexShrink: 0, background: isRefunded ? 'var(--bg3)' : 'linear-gradient(135deg, var(--purple), var(--orange))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.9rem' }}>
-                  {(p.userName || '?')[0].toUpperCase()}
+                <div style={{ width: 38, height: 38, borderRadius: '50%', flexShrink: 0, background: isRefunded ? 'var(--bg3)' : fullyIn ? 'rgba(34,197,94,.2)' : 'linear-gradient(135deg, var(--purple), var(--orange))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.9rem', border: fullyIn ? '2px solid var(--success)' : 'none' }}>
+                  {fullyIn ? '✓' : (p.userName || '?')[0].toUpperCase()}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, fontSize: '0.88rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {p.userName || 'Anonyme'} {isRefunded && <span style={{ color: 'var(--danger)', fontSize: '0.72rem', fontWeight: 400 }}>· remboursé</span>}
+                    {p.userName || 'Anonyme'}
+                    {isRefunded && <span style={{ color: 'var(--danger)', fontSize: '0.72rem', fontWeight: 400, marginLeft: 6 }}>remboursé</span>}
                   </div>
-                  <div style={{ color: 'var(--muted)', fontSize: '0.75rem', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {p.userEmail && <span>{p.userEmail} · </span>}
+                  <div style={{ color: 'var(--muted)', fontSize: '0.75rem', marginTop: 2 }}>
                     {eventItems.map(i => `${i.ticketName}×${i.qty}`).join(', ')}
+                    {' · '}
+                    <span style={{ color: fullyIn ? 'var(--success)' : partialIn ? '#eab308' : 'var(--muted)', fontWeight: 600 }}>
+                      {validatedQty}/{totalQty} validé{validatedQty !== 1 ? 's' : ''}
+                    </span>
                   </div>
-                  {isCheckedIn && checkedInAt && (
-                    <div style={{ color: 'var(--success)', fontSize: '0.7rem', marginTop: 1 }}>
-                      Validé le {new Date(checkedInAt).toLocaleString('fr-FR')}
-                    </div>
-                  )}
                 </div>
                 <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                  {!isRefunded && (
+                  {!isRefunded && !fullyIn && (
                     <button
-                      onClick={() => onCheckin(p.id, selectedId)}
-                      style={{ padding: '5px 10px', borderRadius: 8, border: isCheckedIn ? '1px solid rgba(34,197,94,.4)' : '1px solid var(--border)', background: isCheckedIn ? 'rgba(34,197,94,.12)' : 'transparent', color: isCheckedIn ? 'var(--success)' : 'var(--muted)', cursor: 'pointer', fontSize: '0.75rem', transition: 'all .2s' }}
+                      onClick={() => setConfirmOrder(p)}
+                      style={{ padding: '5px 10px', borderRadius: 8, border: '1px solid var(--border)', background: partialIn ? 'rgba(234,179,8,.1)' : 'transparent', color: partialIn ? '#eab308' : 'var(--muted)', cursor: 'pointer', fontSize: '0.75rem' }}
                     >
-                      {isCheckedIn ? '✓ Validé' : 'Check-in'}
+                      {partialIn ? `+Valider` : 'Valider'}
                     </button>
                   )}
+                  {fullyIn && <span style={{ fontSize: '0.75rem', color: 'var(--success)', padding: '5px 6px', fontWeight: 700 }}>✓ Complet</span>}
                   {!isRefunded && (
                     <button
-                      onClick={() => { if (window.confirm(`Rembourser la commande de ${p.userName} ?`)) onRefund(p.id) }}
-                      style={{ padding: '5px 10px', borderRadius: 8, border: '1px solid rgba(239,68,68,.3)', background: 'rgba(239,68,68,.08)', color: 'var(--danger)', cursor: 'pointer', fontSize: '0.75rem', transition: 'all .2s' }}
+                      onClick={() => { if (window.confirm(`Rembourser ${p.userName} ?`)) onRefund(p.id) }}
+                      style={{ padding: '5px 8px', borderRadius: 8, border: '1px solid rgba(239,68,68,.3)', background: 'rgba(239,68,68,.08)', color: 'var(--danger)', cursor: 'pointer', fontSize: '0.75rem' }}
                     >
-                      ↩ Rembourser
+                      ↩
                     </button>
                   )}
-                  {isRefunded && (
-                    <span style={{ fontSize: '0.75rem', color: 'var(--danger)', padding: '5px 10px' }}>Remboursé</span>
-                  )}
+                  {isRefunded && <span style={{ fontSize: '0.75rem', color: 'var(--danger)', padding: '5px 10px' }}>Remboursé</span>}
                 </div>
               </div>
             )
@@ -946,7 +1065,7 @@ function InvitationsTab({ myEvents, onInvite, onLoadInvitations, toast }) {
 export function OrganizerModal({
   open, user, isAdmin, myEvents, purchases, organizerOrders, organizerStats,
   applications,
-  onClose, onCreate, onUpdate, onDelete, onCheckin, onCheckinByRef, onRefund, onRefresh,
+  onClose, onCreate, onUpdate, onDelete, onCheckin, onCheckinByRef, onCheckinPartial, onLookupByRef, onRefund, onRefresh,
   onPromote, onReject, onLoadApplications, onUploadImage,
   onInvite, onLoadInvitations,
   onLoadVerifRequests, onApproveVerif, onDenyVerif,
@@ -1043,6 +1162,8 @@ export function OrganizerModal({
             organizerOrders={attendeeOrders}
             onCheckin={onCheckin}
             onCheckinByRef={onCheckinByRef}
+            onCheckinPartial={onCheckinPartial}
+            onLookupByRef={onLookupByRef}
             onRefund={onRefund}
             loading={loading} errors={errors}
             onRefresh={onRefresh}

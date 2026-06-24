@@ -107,8 +107,9 @@ function App() {
   const openEvent = (id) => { setSelectedEventId(id); open('event') }
 
   const handleAddToCart = (event, selections) => {
-    const ok = store.addToCart(event, selections)
-    if (!ok) { toast('Sélectionnez au moins 1 billet', 'error'); return }
+    const result = store.addToCart(event, selections)
+    if (!result) { toast('Sélectionnez au moins 1 billet', 'error'); return }
+    if (result.error) { toast(result.error, 'error'); return }
     toast('Billets ajoutés au panier !', 'success')
     close()
   }
@@ -365,6 +366,8 @@ function App() {
           toast('Check-in mis à jour ✓', 'success')
         }}
         onCheckinByRef={store.checkinByRef}
+        onCheckinPartial={store.checkinPartial}
+        onLookupByRef={store.lookupByRef}
         onRefresh={store.refreshOrganizerData}
         onPromote={async (userId, appId) => {
           const ok = await store.promoteToOrganizer(userId, appId)

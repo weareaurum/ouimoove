@@ -44,9 +44,10 @@ function shapeMyOrder(order, eventsRef, userName = '') {
       ticketName: tk?.name  ?? 'Billet',
       price:      item.unit_price_cfa,
       qty:        item.quantity,
-      checkedIn:  item.checked_in,
-      isResale:   item.is_resale || false,
-      resold:     item.resold    || false,
+      checkedIn:      item.checked_in,
+      checkedInCount: item.checked_in_count || 0,
+      isResale:       item.is_resale || false,
+      resold:         item.resold    || false,
     }
   })
   return {
@@ -249,10 +250,11 @@ export function useStore() {
         ticketName:  row.ticket_type_name,
         price:       row.unit_price_cfa,
         qty:         row.quantity,
-        checkedIn:   row.checked_in,
-        checkedInAt: row.checked_in_at,
-        isResale:    row.is_resale || false,
-        resold:      row.resold    || false,
+        checkedIn:      row.checked_in,
+        checkedInCount: row.checked_in_count || 0,
+        checkedInAt:    row.checked_in_at,
+        isResale:       row.is_resale || false,
+        resold:         row.resold    || false,
       })
       grouped[row.order_id].total += row.unit_price_cfa * row.quantity
     }
@@ -416,6 +418,8 @@ export function useStore() {
         }
       })
     if (!items.length) return false
+    const totalQty = items.reduce((s, i) => s + i.qty, 0)
+    if (totalQty > 10) return { error: 'Maximum 10 billets par commande.' }
     setCart([...cart, ...items])
     return true
   }, [cart, setCart])
@@ -916,9 +920,10 @@ export function useStore() {
     const ids = relevantItems.map((i) => i.id)
 
     const { error } = await supabase.from('order_items').update({
-      checked_in:    shouldCheckIn,
-      checked_in_at: shouldCheckIn ? new Date().toISOString() : null,
-      checked_in_by: user?.id,
+      checked_in:       shouldCheckIn,
+      checked_in_count: shouldCheckIn ? relevantItems.map(i => i.qty) : 0,
+      checked_in_at:    shouldCheckIn ? new Date().toISOString() : null,
+      checked_in_by:    user?.id,
     }).in('id', ids)
 
     if (error) { console.error('checkin:', error); return false }
@@ -928,7 +933,40 @@ export function useStore() {
     return true
   }, [organizerOrders, user, loadOrganizerOrders, loadMyOrders])
 
-  // lookup order by short ref (first 8 chars of UUID) and check in
+  // Partial check-in: validate `count` tickets for a specific order item
+  const checkinPartial = useCallback(async (orderItemId, count) => {
+    const order = organizerOrders.find(p => p.items.some(i => i.id === orderItemId))
+    if (!order) return { error: 'Commande introuvable.' }
+    const item = order.items.find(i => i.id === orderItemId)
+    if (!item) return { error: 'Billet introuvable.' }
+
+    const newCount = Math.min((item.checkedInCount || 0) + count, item.qty)
+    const fullyIn  = newCount >= item.qty
+
+    const { error } = await supabase.from('order_items').update({
+      checked_in_count: newCount,
+      checked_in:       fullyIn,
+      checked_in_at:    new Date().toISOString(),
+      checked_in_by:    user?.id,
+    }).eq('id', orderItemId)
+
+    if (error) return { error: error.message }
+    await loadOrganizerOrders(user?.id)
+    await loadMyOrders(user?.id, undefined, user?.name)
+    return { ok: true, validated: count, total: item.qty, newCount }
+  }, [organizerOrders, user, loadOrganizerOrders, loadMyOrders])
+
+  // Lookup by QR payload or short ref, return order info without checking in
+  const lookupByRef = useCallback((ref) => {
+    // QR payload format: OUIMOOVE|<uuid>|<title>|<total>
+    const clean = ref.includes('|') ? ref.split('|')[1] : ref.trim()
+    const lower = clean.toLowerCase()
+    const order = organizerOrders.find(p => p.id.toLowerCase().startsWith(lower) || p.id.toLowerCase() === lower)
+    if (!order) return null
+    return order
+  }, [organizerOrders])
+
+  // lookup order by short ref (first 8 chars of UUID) and check in (all at once)
   const checkinByRef = useCallback(async (ref, eventId = null) => {
     const lower = ref.trim().toLowerCase()
     const order = organizerOrders.find(p => p.id.toLowerCase().startsWith(lower))
@@ -944,12 +982,17 @@ export function useStore() {
     if (alreadyIn) return { already: true, order }
 
     const { error } = await supabase.from('order_items').update({
-      checked_in:    true,
-      checked_in_at: new Date().toISOString(),
-      checked_in_by: user?.id,
+      checked_in:       true,
+      checked_in_count: null, // will be set per item below
+      checked_in_at:    new Date().toISOString(),
+      checked_in_by:    user?.id,
     }).in('id', relevantItems.map(i => i.id))
 
     if (error) return { error: error.message }
+    // set count = qty for each
+    for (const item of relevantItems) {
+      await supabase.from('order_items').update({ checked_in_count: item.qty }).eq('id', item.id)
+    }
     await loadOrganizerOrders(user?.id)
     await loadMyOrders(user?.id, undefined, user?.name)
     return { ok: true, order }
@@ -1223,7 +1266,7 @@ export function useStore() {
     buyResaleListing,
     loadResaleListings,
 
-    checkinPurchase, checkinByRef, refundOrder,
+    checkinPurchase, checkinByRef, checkinPartial, lookupByRef, refundOrder,
 
     applications,
     loadApplications,
