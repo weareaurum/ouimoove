@@ -34,131 +34,221 @@ function TicketCard({ purchase, myListings, toast, onListForResale, onCancelList
 
   const downloadTicket = async () => {
     try {
-      const ticketData = [
-        `OuiMoove`,
-        `REF:${purchase.id}`,
-        purchase.items.map(i => `${i.eventTitle}|${i.ticketName}|x${i.qty}`).join(';'),
-        `TOTAL:${purchase.total}FCFA`,
-      ].join('\n')
-
-      // Build a canvas with QR + ticket info
-      const qrDataUrl = await QRCode.toDataURL(ticketData, {
-        width: 300,
-        margin: 2,
-        color: { dark: '#7c3aed', light: '#ffffff' },
-      })
-
-      const canvas = document.createElement('canvas')
-      canvas.width = 600
-      canvas.height = 820
-      const ctx = canvas.getContext('2d')
-
-      // Background
-      ctx.fillStyle = '#15151f'
-      ctx.fillRect(0, 0, 600, 820)
-
-      // Header bar
-      const grad = ctx.createLinearGradient(0, 0, 600, 0)
-      grad.addColorStop(0, '#7c3aed')
-      grad.addColorStop(1, '#ff6b35')
-      ctx.fillStyle = grad
-      ctx.fillRect(0, 0, 600, 8)
-
-      // Logo text
-      ctx.fillStyle = '#ffffff'
-      ctx.font = 'bold 28px Arial'
-      ctx.textAlign = 'center'
-      ctx.fillText('OuiMoove', 300, 56)
-
-      ctx.fillStyle = '#a78bfa'
-      ctx.font = '14px Arial'
-      ctx.fillText('Billet Électronique', 300, 80)
-
-      // Dashed separator
-      ctx.setLineDash([8, 6])
-      ctx.strokeStyle = 'rgba(255,255,255,0.12)'
-      ctx.lineWidth = 1.5
-      ctx.beginPath(); ctx.moveTo(40, 100); ctx.lineTo(560, 100); ctx.stroke()
-      ctx.setLineDash([])
-
-      // Event info
-      const firstItem = purchase.items[0]
-      ctx.fillStyle = '#ffffff'
-      ctx.font = 'bold 20px Arial'
-      ctx.textAlign = 'center'
-      const title = firstItem?.eventTitle || 'Événement'
-      ctx.fillText(title.length > 38 ? title.slice(0, 38) + '…' : title, 300, 134)
-
-      ctx.fillStyle = '#a78bfa'
-      ctx.font = '13px Arial'
-      const ticketNames = purchase.items.map(i => `${i.ticketName} ×${i.qty}`).join(' · ')
-      ctx.fillText(ticketNames, 300, 158)
-
-      // QR Code
-      const qrImg = new Image()
-      await new Promise(resolve => { qrImg.onload = resolve; qrImg.src = qrDataUrl })
-      const qrSize = 280
-      const qrX = (600 - qrSize) / 2
-      // White rounded rect behind QR
-      ctx.fillStyle = '#ffffff'
-      ctx.beginPath()
-      ctx.roundRect(qrX - 12, 176, qrSize + 24, qrSize + 24, 16)
-      ctx.fill()
-      ctx.drawImage(qrImg, qrX, 188, qrSize, qrSize)
-
-      // Scan label
-      ctx.fillStyle = '#6b7280'
-      ctx.font = '12px Arial'
-      ctx.fillText('Scanner à l\'entrée', 300, 494)
-
-      // Info rows
-      const infoY = 524
-      const drawInfo = (label, value, y) => {
-        ctx.textAlign = 'left'
-        ctx.fillStyle = '#6b7280'
-        ctx.font = '12px Arial'
-        ctx.fillText(label, 60, y)
-        ctx.textAlign = 'right'
-        ctx.fillStyle = '#e5e7eb'
-        ctx.font = '13px Arial'
-        ctx.fillText(value, 540, y)
+      // ── helpers ──────────────────────────────────────────────
+      const rrect = (ctx, x, y, w, h, r) => {
+        ctx.beginPath()
+        ctx.moveTo(x + r, y)
+        ctx.lineTo(x + w - r, y)
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r)
+        ctx.lineTo(x + w, y + h - r)
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h)
+        ctx.lineTo(x + r, y + h)
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r)
+        ctx.lineTo(x, y + r)
+        ctx.quadraticCurveTo(x, y, x + r, y)
+        ctx.closePath()
       }
 
-      drawInfo('Référence', purchase.id.slice(0, 8).toUpperCase(), infoY)
-      drawInfo('Date d\'achat', new Date(purchase.date).toLocaleDateString('fr-FR'), infoY + 34)
-      drawInfo('Méthode', purchase.method || 'Carte', infoY + 68)
-      drawInfo('Total', `${purchase.total.toLocaleString('fr-FR')} FCFA`, infoY + 102)
+      const W = 640, H = 980
+      const canvas = document.createElement('canvas')
+      canvas.width  = W * 2   // retina
+      canvas.height = H * 2
+      canvas.style.width  = `${W}px`
+      canvas.style.height = `${H}px`
+      const ctx = canvas.getContext('2d')
+      ctx.scale(2, 2)         // draw at 2× for crisp output
 
-      // Bottom dashed
-      ctx.setLineDash([8, 6])
-      ctx.strokeStyle = 'rgba(255,255,255,0.12)'
-      ctx.beginPath(); ctx.moveTo(40, 714); ctx.lineTo(560, 714); ctx.stroke()
-      ctx.setLineDash([])
+      // ── outer card ───────────────────────────────────────────
+      ctx.shadowColor = 'rgba(0,0,0,0.6)'
+      ctx.shadowBlur  = 0
+      rrect(ctx, 0, 0, W, H, 24)
+      ctx.fillStyle = '#0d0d1a'
+      ctx.fill()
+      ctx.shadowBlur = 0
 
-      ctx.fillStyle = '#4b5563'
-      ctx.font = '12px Arial'
+      // ── decorative circle blobs ───────────────────────────────
+      const blob = (x, y, r, color) => {
+        ctx.save()
+        ctx.globalAlpha = 0.18
+        ctx.fillStyle = color
+        ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill()
+        ctx.restore()
+      }
+      blob(-40, 80,  180, '#7c3aed')
+      blob(W + 20, 200, 160, '#ff6b35')
+      blob(W - 60, H - 120, 140, '#7c3aed')
+      blob(60, H - 80, 120, '#ff6b35')
+
+      // ── top gradient banner ───────────────────────────────────
+      const topGrad = ctx.createLinearGradient(0, 0, W, 0)
+      topGrad.addColorStop(0, '#5b21b6')
+      topGrad.addColorStop(0.5, '#7c3aed')
+      topGrad.addColorStop(1, '#ff6b35')
+      rrect(ctx, 0, 0, W, 200, 24)
+      ctx.fillStyle = topGrad
+      ctx.fill()
+      // clip bottom corners of banner to be flat
+      ctx.fillRect(0, 180, W, 20)
+
+      // subtle dot-grid pattern on banner
+      ctx.save()
+      ctx.globalAlpha = 0.08
+      ctx.fillStyle = '#fff'
+      for (let gx = 16; gx < W; gx += 24)
+        for (let gy = 16; gy < 200; gy += 24) {
+          ctx.beginPath(); ctx.arc(gx, gy, 1.5, 0, Math.PI * 2); ctx.fill()
+        }
+      ctx.restore()
+
+      // ── logo ─────────────────────────────────────────────────
+      // Oui (white) + Moove (orange)
+      ctx.textBaseline = 'middle'
+      ctx.font = 'bold 44px Arial'
+      ctx.fillStyle = '#ffffff'
+      ctx.textAlign  = 'left'
+      const logoX = W / 2 - 92
+      ctx.fillText('Oui', logoX, 62)
+      ctx.fillStyle = '#ff6b35'
+      ctx.fillText('Moove', logoX + 74, 62)
+
+      ctx.font      = '13px Arial'
+      ctx.fillStyle = 'rgba(255,255,255,0.7)'
       ctx.textAlign = 'center'
-      ctx.fillText('Merci pour votre achat sur OuiMoove !', 300, 744)
+      ctx.fillText('BILLET ÉLECTRONIQUE', W / 2, 92)
 
-      ctx.fillStyle = '#374151'
-      ctx.font = '11px Arial'
-      ctx.fillText('ouimoove.com', 300, 764)
+      // ── event emoji + name ────────────────────────────────────
+      const firstItem = purchase.items[0]
+      const title     = firstItem?.eventTitle || 'Événement'
+      const emoji     = purchase.items[0]?.eventEmoji || '🎟️'
 
-      // Bottom accent bar
-      ctx.fillStyle = grad
-      ctx.fillRect(0, 812, 600, 8)
+      ctx.font      = '36px Arial'
+      ctx.textAlign = 'center'
+      ctx.fillText(emoji, W / 2, 140)
 
-      // Download
+      ctx.font      = 'bold 22px Arial'
+      ctx.fillStyle = '#ffffff'
+      const shortTitle = title.length > 32 ? title.slice(0, 32) + '…' : title
+      ctx.fillText(shortTitle, W / 2, 172)
+
+      // ── ticket type badges ────────────────────────────────────
+      const badges   = purchase.items.map(i => `${i.ticketName} ×${i.qty}`)
+      let bx = W / 2 - (badges.join('  ').length * 4.2)
+      ctx.font = 'bold 11px Arial'
+      badges.forEach(badge => {
+        const tw = ctx.measureText(badge).width + 20
+        rrect(ctx, bx, 190, tw, 22, 11)
+        ctx.fillStyle = 'rgba(255,255,255,0.18)'
+        ctx.fill()
+        ctx.fillStyle = '#ffffff'
+        ctx.textAlign = 'left'
+        ctx.fillText(badge, bx + 10, 201)
+        bx += tw + 8
+      })
+
+      // ── info grid (dark section) ──────────────────────────────
+      const infoTop = 226
+      const col1 = 48, col2 = W / 2 + 16
+      const drawField = (label, value, x, y) => {
+        ctx.font      = '11px Arial'
+        ctx.fillStyle = 'rgba(255,255,255,0.4)'
+        ctx.textAlign = 'left'
+        ctx.fillText(label.toUpperCase(), x, y)
+        ctx.font      = 'bold 14px Arial'
+        ctx.fillStyle = '#ffffff'
+        ctx.fillText(value, x, y + 18)
+      }
+
+      const ref   = purchase.id.slice(0, 8).toUpperCase()
+      const date  = new Date(purchase.date).toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' })
+      const meth  = (purchase.method || 'Carte').charAt(0).toUpperCase() + (purchase.method || 'carte').slice(1)
+      const total = `${purchase.total.toLocaleString('fr-FR')} FCFA`
+
+      drawField('Référence',   ref,   col1, infoTop)
+      drawField('Date d\'achat', date, col2, infoTop)
+      drawField('Méthode',     meth,  col1, infoTop + 52)
+      drawField('Montant',     total, col2, infoTop + 52)
+
+      // ── tear line ─────────────────────────────────────────────
+      const tearY = 330
+      // notch circles on each side
+      ctx.fillStyle = '#0d0d1a'
+      ctx.beginPath(); ctx.arc(0,   tearY, 18, 0, Math.PI * 2); ctx.fill()
+      ctx.beginPath(); ctx.arc(W,   tearY, 18, 0, Math.PI * 2); ctx.fill()
+      // dashed line
+      ctx.save()
+      ctx.setLineDash([8, 6])
+      ctx.strokeStyle = 'rgba(255,255,255,0.15)'
+      ctx.lineWidth   = 1.5
+      ctx.beginPath(); ctx.moveTo(22, tearY); ctx.lineTo(W - 22, tearY); ctx.stroke()
+      ctx.restore()
+
+      // scissors icon
+      ctx.font      = '16px Arial'
+      ctx.fillStyle = 'rgba(255,255,255,0.2)'
+      ctx.textAlign = 'center'
+      ctx.fillText('✂', W / 2, tearY + 6)
+
+      // ── QR section (white card) ───────────────────────────────
+      const qrY = tearY + 28
+      rrect(ctx, 40, qrY, W - 80, 380, 16)
+      ctx.fillStyle = '#ffffff'
+      ctx.fill()
+
+      // QR code
+      const qrPayload = `OUIMOOVE|${purchase.id}|${title}|${total}`
+      const qrDataUrl = await QRCode.toDataURL(qrPayload, {
+        width: 220,
+        margin: 1,
+        color: { dark: '#0d0d1a', light: '#ffffff' },
+      })
+      const qrImg = new Image()
+      await new Promise(res => { qrImg.onload = res; qrImg.src = qrDataUrl })
+      const qrSize = 220
+      const qrX    = (W - qrSize) / 2
+      ctx.drawImage(qrImg, qrX, qrY + 28, qrSize, qrSize)
+
+      // scan label
+      ctx.font      = 'bold 12px Arial'
+      ctx.fillStyle = '#6b7280'
+      ctx.textAlign = 'center'
+      ctx.fillText('SCANNER À L\'ENTRÉE', W / 2, qrY + qrSize + 52)
+
+      // ref below qr
+      ctx.font      = '11px Arial'
+      ctx.fillStyle = '#9ca3af'
+      ctx.fillText(`Réf: ${ref}`, W / 2, qrY + qrSize + 70)
+
+      // thin purple line at bottom of white card
+      const accentGrad = ctx.createLinearGradient(40, 0, W - 40, 0)
+      accentGrad.addColorStop(0, '#7c3aed')
+      accentGrad.addColorStop(1, '#ff6b35')
+      ctx.fillStyle = accentGrad
+      ctx.fillRect(40, qrY + 374, W - 80, 6)
+
+      // ── footer ────────────────────────────────────────────────
+      const footY = qrY + 408
+      ctx.font      = '12px Arial'
+      ctx.fillStyle = 'rgba(255,255,255,0.35)'
+      ctx.textAlign = 'center'
+      ctx.fillText('Merci pour votre achat — ouimoove.com', W / 2, footY)
+
+      // powered by line
+      ctx.font      = '10px Arial'
+      ctx.fillStyle = 'rgba(255,255,255,0.18)'
+      ctx.fillText(`Généré le ${new Date().toLocaleDateString('fr-FR')}`, W / 2, footY + 20)
+
+      // ── download ──────────────────────────────────────────────
       canvas.toBlob(blob => {
         const a = document.createElement('a')
-        a.href = URL.createObjectURL(blob)
-        a.download = `billet-ouimoove-${purchase.id.slice(0, 8)}.png`
+        a.href     = URL.createObjectURL(blob)
+        a.download = `billet-ouimoove-${ref}.png`
         a.click()
         URL.revokeObjectURL(a.href)
       }, 'image/png')
 
       toast('Billet téléchargé ✓', 'success')
-    } catch {
+    } catch(e) {
+      console.error(e)
       toast('Erreur lors du téléchargement', 'error')
     }
   }
