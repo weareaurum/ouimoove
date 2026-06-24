@@ -364,6 +364,7 @@ function App() {
           if (!ok) { toast('Impossible de valider ce billet', 'error'); return }
           toast('Check-in mis à jour ✓', 'success')
         }}
+        onCheckinByRef={store.checkinByRef}
         onRefresh={store.refreshOrganizerData}
         onPromote={async (userId, appId) => {
           const ok = await store.promoteToOrganizer(userId, appId)

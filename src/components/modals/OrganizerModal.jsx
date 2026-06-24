@@ -453,32 +453,114 @@ function MyEventsTab({ myEvents, onDelete, onEdit, loading, errors }) {
 }
 
 // ── Attendees Tab ─────────────────────────────────────────────
-function AttendeesTab({ myEvents, organizerOrders, onCheckin, onRefund, loading, errors, onRefresh }) {
+function AttendeesTab({ myEvents, organizerOrders, onCheckin, onCheckinByRef, onRefund, loading, errors, onRefresh }) {
   const [selectedId, setSelectedId] = useState(myEvents[0]?.id ?? '')
-  const [search, setSearch] = useState('')
+  const [search,     setSearch]     = useState('')
+  const [scanRef,    setScanRef]    = useState('')
+  const [scanResult, setScanResult] = useState(null) // { ok, already, order, error }
+  const [scanning,   setScanning]   = useState(false)
 
   const attendees = organizerOrders.filter(p => p.items.some(i => i.eventId === selectedId))
   const filtered = search.trim()
-    ? attendees.filter(p => p.userName.toLowerCase().includes(search.toLowerCase()) || p.userEmail.toLowerCase().includes(search.toLowerCase()))
+    ? attendees.filter(p =>
+        p.userName.toLowerCase().includes(search.toLowerCase()) ||
+        p.userEmail.toLowerCase().includes(search.toLowerCase()) ||
+        p.id.toLowerCase().startsWith(search.toLowerCase()))
     : attendees
 
-  const checkedCount = filtered.filter(p => p.items.filter(i => i.eventId === selectedId).every(i => i.checkedIn)).length
+  const total        = attendees.length
+  const checkedCount = attendees.filter(p => p.items.filter(i => i.eventId === selectedId).every(i => i.checkedIn)).length
+  const pct          = total > 0 ? Math.round((checkedCount / total) * 100) : 0
+
+  const handleScan = async () => {
+    if (!scanRef.trim()) return
+    setScanning(true)
+    setScanResult(null)
+    const result = await onCheckinByRef(scanRef.trim(), selectedId)
+    setScanResult(result)
+    setScanning(false)
+    if (result.ok || result.already) setScanRef('')
+  }
 
   if (loading.orgOrders) return <Spinner />
 
   return (
     <div>
+      {/* ── Quick scan bar ── */}
+      <div style={{ background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px', marginBottom: 16 }}>
+        <div style={{ fontSize: '0.82rem', fontWeight: 700, marginBottom: 10, color: 'var(--text)' }}>🎫 Validation rapide par référence</div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input
+            style={{ ...inputStyle, flex: 1, fontFamily: 'monospace', letterSpacing: '0.08em', textTransform: 'uppercase' }}
+            placeholder="Ex: A3F7B2C1"
+            value={scanRef}
+            onChange={e => { setScanRef(e.target.value.toUpperCase()); setScanResult(null) }}
+            onKeyDown={e => e.key === 'Enter' && handleScan()}
+          />
+          <button
+            onClick={handleScan}
+            disabled={scanning || !scanRef.trim()}
+            style={{ padding: '0 18px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, var(--purple), var(--purple2))', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: '0.88rem', opacity: scanning || !scanRef.trim() ? 0.6 : 1 }}
+          >
+            {scanning ? '…' : 'Valider'}
+          </button>
+        </div>
+
+        {scanResult && (
+          <div style={{
+            marginTop: 10, padding: '10px 14px', borderRadius: 8,
+            background: scanResult.error   ? 'rgba(239,68,68,.1)'   :
+                        scanResult.already ? 'rgba(234,179,8,.1)'    : 'rgba(34,197,94,.1)',
+            border: `1px solid ${scanResult.error ? 'rgba(239,68,68,.3)' : scanResult.already ? 'rgba(234,179,8,.3)' : 'rgba(34,197,94,.3)'}`,
+          }}>
+            {scanResult.error && (
+              <span style={{ color: 'var(--danger)', fontSize: '0.85rem' }}>❌ {scanResult.error}</span>
+            )}
+            {scanResult.already && (
+              <div>
+                <span style={{ color: '#eab308', fontSize: '0.85rem', fontWeight: 700 }}>⚠️ Billet déjà validé</span>
+                <div style={{ fontSize: '0.78rem', color: 'var(--muted)', marginTop: 3 }}>
+                  {scanResult.order.userName} · {scanResult.order.items.map(i => `${i.ticketName}×${i.qty}`).join(', ')}
+                </div>
+              </div>
+            )}
+            {scanResult.ok && (
+              <div>
+                <span style={{ color: 'var(--success)', fontSize: '0.85rem', fontWeight: 700 }}>✅ Billet validé avec succès !</span>
+                <div style={{ fontSize: '0.78rem', color: 'var(--muted)', marginTop: 3 }}>
+                  {scanResult.order.userName} · {scanResult.order.items.map(i => `${i.ticketName}×${i.qty}`).join(', ')}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ── Progress bar ── */}
+      {total > 0 && (
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--muted)', marginBottom: 6 }}>
+            <span><b style={{ color: 'var(--success)' }}>{checkedCount}</b> validé{checkedCount !== 1 ? 's' : ''} · <b style={{ color: 'var(--orange)' }}>{total - checkedCount}</b> en attente</span>
+            <span style={{ color: 'var(--text)', fontWeight: 700 }}>{pct}%</span>
+          </div>
+          <div style={{ height: 6, background: 'var(--bg3)', borderRadius: 4, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${pct}%`, background: 'linear-gradient(90deg, var(--purple), var(--success))', borderRadius: 4, transition: 'width .4s' }} />
+          </div>
+        </div>
+      )}
+
+      {/* ── Filters ── */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
         <div style={{ flex: 2, minWidth: 160 }}>
           <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--muted)', marginBottom: 6 }}>Événement</label>
-          <select style={inputStyle} value={selectedId} onChange={e => setSelectedId(e.target.value)}>
+          <select style={inputStyle} value={selectedId} onChange={e => { setSelectedId(e.target.value); setScanResult(null) }}>
             {myEvents.map(e => <option key={e.id} value={e.id}>{e.title}</option>)}
             {!myEvents.length && <option value="">Aucun événement</option>}
           </select>
         </div>
         <div style={{ flex: 2, minWidth: 160 }}>
           <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--muted)', marginBottom: 6 }}>Rechercher</label>
-          <input style={inputStyle} placeholder="Nom ou email…" value={search} onChange={e => setSearch(e.target.value)} />
+          <input style={inputStyle} placeholder="Nom, email ou référence…" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
       </div>
 
@@ -864,7 +946,7 @@ function InvitationsTab({ myEvents, onInvite, onLoadInvitations, toast }) {
 export function OrganizerModal({
   open, user, isAdmin, myEvents, purchases, organizerOrders, organizerStats,
   applications,
-  onClose, onCreate, onUpdate, onDelete, onCheckin, onRefund, onRefresh,
+  onClose, onCreate, onUpdate, onDelete, onCheckin, onCheckinByRef, onRefund, onRefresh,
   onPromote, onReject, onLoadApplications, onUploadImage,
   onInvite, onLoadInvitations,
   onLoadVerifRequests, onApproveVerif, onDenyVerif,
@@ -960,6 +1042,7 @@ export function OrganizerModal({
             myEvents={myEvents}
             organizerOrders={attendeeOrders}
             onCheckin={onCheckin}
+            onCheckinByRef={onCheckinByRef}
             onRefund={onRefund}
             loading={loading} errors={errors}
             onRefresh={onRefresh}

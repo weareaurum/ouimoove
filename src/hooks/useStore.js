@@ -928,6 +928,33 @@ export function useStore() {
     return true
   }, [organizerOrders, user, loadOrganizerOrders, loadMyOrders])
 
+  // lookup order by short ref (first 8 chars of UUID) and check in
+  const checkinByRef = useCallback(async (ref, eventId = null) => {
+    const lower = ref.trim().toLowerCase()
+    const order = organizerOrders.find(p => p.id.toLowerCase().startsWith(lower))
+    if (!order) return { error: 'Référence introuvable.' }
+
+    const relevantItems = eventId
+      ? order.items.filter(i => i.eventId === eventId && !i.resold)
+      : order.items.filter(i => !i.resold)
+
+    if (!relevantItems.length) return { error: 'Aucun billet valide pour cet événement.' }
+
+    const alreadyIn = relevantItems.every(i => i.checkedIn)
+    if (alreadyIn) return { already: true, order }
+
+    const { error } = await supabase.from('order_items').update({
+      checked_in:    true,
+      checked_in_at: new Date().toISOString(),
+      checked_in_by: user?.id,
+    }).in('id', relevantItems.map(i => i.id))
+
+    if (error) return { error: error.message }
+    await loadOrganizerOrders(user?.id)
+    await loadMyOrders(user?.id, undefined, user?.name)
+    return { ok: true, order }
+  }, [organizerOrders, user, loadOrganizerOrders, loadMyOrders])
+
   // ── ADMIN ──────────────────────────────────────────────────
   const loadApplications = useCallback(async () => {
     const { data, error } = await supabase
@@ -1196,7 +1223,7 @@ export function useStore() {
     buyResaleListing,
     loadResaleListings,
 
-    checkinPurchase, refundOrder,
+    checkinPurchase, checkinByRef, refundOrder,
 
     applications,
     loadApplications,
