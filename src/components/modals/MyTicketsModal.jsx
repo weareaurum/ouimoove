@@ -51,12 +51,9 @@ function TicketCard({ purchase, myListings, toast, onListForResale, onCancelList
 
       const W = 640, H = 980
       const canvas = document.createElement('canvas')
-      canvas.width  = W * 2   // retina
-      canvas.height = H * 2
-      canvas.style.width  = `${W}px`
-      canvas.style.height = `${H}px`
+      canvas.width  = W
+      canvas.height = H
       const ctx = canvas.getContext('2d')
-      ctx.scale(2, 2)         // draw at 2× for crisp output
 
       // ── outer card ───────────────────────────────────────────
       ctx.shadowColor = 'rgba(0,0,0,0.6)'
@@ -131,11 +128,14 @@ function TicketCard({ purchase, myListings, toast, onListForResale, onCancelList
       ctx.fillText(shortTitle, W / 2, 172)
 
       // ── ticket type badges ────────────────────────────────────
-      const badges   = purchase.items.map(i => `${i.ticketName} ×${i.qty}`)
-      let bx = W / 2 - (badges.join('  ').length * 4.2)
+      const badges = purchase.items.map(i => `${i.ticketName} ×${i.qty}`)
       ctx.font = 'bold 11px Arial'
-      badges.forEach(badge => {
-        const tw = ctx.measureText(badge).width + 20
+      // measure total width first to center
+      const badgeWidths = badges.map(b => ctx.measureText(b).width + 20)
+      const totalBadgeW = badgeWidths.reduce((s, w) => s + w, 0) + (badges.length - 1) * 8
+      let bx = Math.max(48, (W - totalBadgeW) / 2)
+      badges.forEach((badge, bi) => {
+        const tw = badgeWidths[bi]
         rrect(ctx, bx, 190, tw, 22, 11)
         ctx.fillStyle = 'rgba(255,255,255,0.18)'
         ctx.fill()
@@ -238,13 +238,13 @@ function TicketCard({ purchase, myListings, toast, onListForResale, onCancelList
       ctx.fillText(`Généré le ${new Date().toLocaleDateString('fr-FR')}`, W / 2, footY + 20)
 
       // ── download ──────────────────────────────────────────────
-      canvas.toBlob(blob => {
-        const a = document.createElement('a')
-        a.href     = URL.createObjectURL(blob)
-        a.download = `billet-ouimoove-${ref}.png`
-        a.click()
-        URL.revokeObjectURL(a.href)
-      }, 'image/png')
+      const dataUrl = canvas.toDataURL('image/png')
+      const a = document.createElement('a')
+      a.href     = dataUrl
+      a.download = `billet-ouimoove-${ref}.png`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
 
       toast('Billet téléchargé ✓', 'success')
     } catch(e) {
