@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import QRCode from 'qrcode'
+import { jsPDF } from 'jspdf'
 import { Modal, ModalHeader, ModalBody } from '../Modal.jsx'
 import styles from './MyTicketsModal.module.css'
 
@@ -34,220 +35,161 @@ function TicketCard({ purchase, myListings, toast, onListForResale, onCancelList
 
   const downloadTicket = async () => {
     try {
-      // ── helpers ──────────────────────────────────────────────
-      const rrect = (ctx, x, y, w, h, r) => {
-        ctx.beginPath()
-        ctx.moveTo(x + r, y)
-        ctx.lineTo(x + w - r, y)
-        ctx.quadraticCurveTo(x + w, y, x + w, y + r)
-        ctx.lineTo(x + w, y + h - r)
-        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h)
-        ctx.lineTo(x + r, y + h)
-        ctx.quadraticCurveTo(x, y + h, x, y + h - r)
-        ctx.lineTo(x, y + r)
-        ctx.quadraticCurveTo(x, y, x + r, y)
-        ctx.closePath()
-      }
-
-      const W = 640, H = 980
-      const canvas = document.createElement('canvas')
-      canvas.width  = W
-      canvas.height = H
-      const ctx = canvas.getContext('2d')
-
-      // ── outer card ───────────────────────────────────────────
-      ctx.shadowColor = 'rgba(0,0,0,0.6)'
-      ctx.shadowBlur  = 0
-      rrect(ctx, 0, 0, W, H, 24)
-      ctx.fillStyle = '#0d0d1a'
-      ctx.fill()
-      ctx.shadowBlur = 0
-
-      // ── decorative circle blobs ───────────────────────────────
-      const blob = (x, y, r, color) => {
-        ctx.save()
-        ctx.globalAlpha = 0.18
-        ctx.fillStyle = color
-        ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill()
-        ctx.restore()
-      }
-      blob(-40, 80,  180, '#7c3aed')
-      blob(W + 20, 200, 160, '#ff6b35')
-      blob(W - 60, H - 120, 140, '#7c3aed')
-      blob(60, H - 80, 120, '#ff6b35')
-
-      // ── top gradient banner ───────────────────────────────────
-      const topGrad = ctx.createLinearGradient(0, 0, W, 0)
-      topGrad.addColorStop(0, '#5b21b6')
-      topGrad.addColorStop(0.5, '#7c3aed')
-      topGrad.addColorStop(1, '#ff6b35')
-      rrect(ctx, 0, 0, W, 200, 24)
-      ctx.fillStyle = topGrad
-      ctx.fill()
-      // clip bottom corners of banner to be flat
-      ctx.fillRect(0, 180, W, 20)
-
-      // subtle dot-grid pattern on banner
-      ctx.save()
-      ctx.globalAlpha = 0.08
-      ctx.fillStyle = '#fff'
-      for (let gx = 16; gx < W; gx += 24)
-        for (let gy = 16; gy < 200; gy += 24) {
-          ctx.beginPath(); ctx.arc(gx, gy, 1.5, 0, Math.PI * 2); ctx.fill()
-        }
-      ctx.restore()
-
-      // ── logo ─────────────────────────────────────────────────
-      // Oui (white) + Moove (orange)
-      ctx.textBaseline = 'middle'
-      ctx.font = 'bold 44px Arial'
-      ctx.fillStyle = '#ffffff'
-      ctx.textAlign  = 'left'
-      const logoX = W / 2 - 92
-      ctx.fillText('Oui', logoX, 62)
-      ctx.fillStyle = '#ff6b35'
-      ctx.fillText('Moove', logoX + 74, 62)
-
-      ctx.font      = '13px Arial'
-      ctx.fillStyle = 'rgba(255,255,255,0.7)'
-      ctx.textAlign = 'center'
-      ctx.fillText('BILLET ÉLECTRONIQUE', W / 2, 92)
-
-      // ── event emoji + name ────────────────────────────────────
       const firstItem = purchase.items[0]
-      const title     = firstItem?.eventTitle || 'Événement'
-      const emoji     = purchase.items[0]?.eventEmoji || '🎟️'
+      const title  = firstItem?.eventTitle || 'Événement'
+      const ref    = purchase.id.slice(0, 8).toUpperCase()
+      const date   = new Date(purchase.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
+      const meth   = (purchase.method || 'Carte').charAt(0).toUpperCase() + (purchase.method || 'carte').slice(1)
+      const total  = `${purchase.total.toLocaleString('fr-FR')} FCFA`
 
-      ctx.font      = '36px Arial'
-      ctx.textAlign = 'center'
-      ctx.fillText(emoji, W / 2, 140)
+      // QR code as data URL
+      const qrDataUrl = await QRCode.toDataURL(
+        `OUIMOOVE|${purchase.id}|${title}|${total}`,
+        { width: 200, margin: 1, color: { dark: '#0d0d1a', light: '#ffffff' } }
+      )
 
-      ctx.font      = 'bold 22px Arial'
-      ctx.fillStyle = '#ffffff'
-      const shortTitle = title.length > 32 ? title.slice(0, 32) + '…' : title
-      ctx.fillText(shortTitle, W / 2, 172)
+      // A5 portrait (148 × 210 mm)
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a5' })
+      const W = 148, H = 210
 
-      // ── ticket type badges ────────────────────────────────────
-      const badges = purchase.items.map(i => `${i.ticketName} ×${i.qty}`)
-      ctx.font = 'bold 11px Arial'
-      // measure total width first to center
-      const badgeWidths = badges.map(b => ctx.measureText(b).width + 20)
-      const totalBadgeW = badgeWidths.reduce((s, w) => s + w, 0) + (badges.length - 1) * 8
-      let bx = Math.max(48, (W - totalBadgeW) / 2)
-      badges.forEach((badge, bi) => {
-        const tw = badgeWidths[bi]
-        rrect(ctx, bx, 190, tw, 22, 11)
-        ctx.fillStyle = 'rgba(255,255,255,0.18)'
-        ctx.fill()
-        ctx.fillStyle = '#ffffff'
-        ctx.textAlign = 'left'
-        ctx.fillText(badge, bx + 10, 201)
-        bx += tw + 8
-      })
+      // ── dark background ───────────────────────────────────────
+      doc.setFillColor(13, 13, 26)
+      doc.rect(0, 0, W, H, 'F')
 
-      // ── info grid (dark section) ──────────────────────────────
-      const infoTop = 226
-      const col1 = 48, col2 = W / 2 + 16
+      // ── purple header band ────────────────────────────────────
+      doc.setFillColor(92, 33, 182)
+      doc.rect(0, 0, W, 52, 'F')
+      // orange right slice
+      doc.setFillColor(255, 107, 53)
+      doc.rect(W * 0.55, 0, W * 0.45, 52, 'F')
+      // blend middle — purple strip on top of orange to fake gradient
+      doc.setFillColor(124, 58, 237)
+      doc.rect(W * 0.3, 0, W * 0.4, 52, 'F')
+
+      // ── logo text ─────────────────────────────────────────────
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(26)
+      doc.setTextColor(255, 255, 255)
+      doc.text('Oui', W / 2 - 14, 22, { align: 'right' })
+      doc.setTextColor(255, 107, 53)
+      doc.text('Moove', W / 2 - 12, 22, { align: 'left' })
+
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(8)
+      doc.setTextColor(200, 180, 255)
+      doc.text('BILLET ÉLECTRONIQUE', W / 2, 31, { align: 'center' })
+
+      // ── event title ───────────────────────────────────────────
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(13)
+      doc.setTextColor(255, 255, 255)
+      const shortTitle = title.length > 38 ? title.slice(0, 38) + '...' : title
+      doc.text(shortTitle, W / 2, 44, { align: 'center' })
+
+      // ── ticket type tags ──────────────────────────────────────
+      doc.setFontSize(8)
+      const tags = purchase.items.map(i => `${i.ticketName} x${i.qty}`)
+      const tagStr = tags.join('   •   ')
+      doc.setTextColor(200, 180, 255)
+      doc.text(tagStr, W / 2, 51, { align: 'center' })
+
+      // ── info grid ─────────────────────────────────────────────
+      const infoY = 60
       const drawField = (label, value, x, y) => {
-        ctx.font      = '11px Arial'
-        ctx.fillStyle = 'rgba(255,255,255,0.4)'
-        ctx.textAlign = 'left'
-        ctx.fillText(label.toUpperCase(), x, y)
-        ctx.font      = 'bold 14px Arial'
-        ctx.fillStyle = '#ffffff'
-        ctx.fillText(value, x, y + 18)
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(7)
+        doc.setTextColor(120, 100, 160)
+        doc.text(label.toUpperCase(), x, y)
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(9)
+        doc.setTextColor(255, 255, 255)
+        doc.text(value, x, y + 5)
       }
 
-      const ref   = purchase.id.slice(0, 8).toUpperCase()
-      const date  = new Date(purchase.date).toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' })
-      const meth  = (purchase.method || 'Carte').charAt(0).toUpperCase() + (purchase.method || 'carte').slice(1)
-      const total = `${purchase.total.toLocaleString('fr-FR')} FCFA`
+      drawField('Référence',    ref,   14,        infoY)
+      drawField("Date d'achat", date,  W / 2 + 4, infoY)
+      drawField('Méthode',      meth,  14,        infoY + 16)
+      drawField('Montant total', total, W / 2 + 4, infoY + 16)
 
-      drawField('Référence',   ref,   col1, infoTop)
-      drawField('Date d\'achat', date, col2, infoTop)
-      drawField('Méthode',     meth,  col1, infoTop + 52)
-      drawField('Montant',     total, col2, infoTop + 52)
+      // ── dashed tear line ──────────────────────────────────────
+      const tearY = 88
+      doc.setDrawColor(80, 60, 120)
+      doc.setLineWidth(0.3)
+      doc.setLineDashPattern([2, 1.5], 0)
+      doc.line(14, tearY, W - 14, tearY)
+      doc.setLineDashPattern([], 0)
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(7)
+      doc.setTextColor(80, 60, 120)
+      doc.text('✂  détachez ici', W / 2, tearY + 3, { align: 'center' })
 
-      // ── tear line ─────────────────────────────────────────────
-      const tearY = 330
-      // notch circles on each side
-      ctx.fillStyle = '#0d0d1a'
-      ctx.beginPath(); ctx.arc(0,   tearY, 18, 0, Math.PI * 2); ctx.fill()
-      ctx.beginPath(); ctx.arc(W,   tearY, 18, 0, Math.PI * 2); ctx.fill()
-      // dashed line
-      ctx.save()
-      ctx.setLineDash([8, 6])
-      ctx.strokeStyle = 'rgba(255,255,255,0.15)'
-      ctx.lineWidth   = 1.5
-      ctx.beginPath(); ctx.moveTo(22, tearY); ctx.lineTo(W - 22, tearY); ctx.stroke()
-      ctx.restore()
+      // ── white QR card ─────────────────────────────────────────
+      const cardY = tearY + 8
+      const cardH = 100
+      doc.setFillColor(255, 255, 255)
+      doc.roundedRect(10, cardY, W - 20, cardH, 4, 4, 'F')
 
-      // scissors icon
-      ctx.font      = '16px Arial'
-      ctx.fillStyle = 'rgba(255,255,255,0.2)'
-      ctx.textAlign = 'center'
-      ctx.fillText('✂', W / 2, tearY + 6)
-
-      // ── QR section (white card) ───────────────────────────────
-      const qrY = tearY + 28
-      rrect(ctx, 40, qrY, W - 80, 380, 16)
-      ctx.fillStyle = '#ffffff'
-      ctx.fill()
-
-      // QR code
-      const qrPayload = `OUIMOOVE|${purchase.id}|${title}|${total}`
-      const qrDataUrl = await QRCode.toDataURL(qrPayload, {
-        width: 220,
-        margin: 1,
-        color: { dark: '#0d0d1a', light: '#ffffff' },
-      })
-      const qrImg = new Image()
-      await new Promise(res => { qrImg.onload = res; qrImg.src = qrDataUrl })
-      const qrSize = 220
+      // QR code image
+      const qrSize = 56
       const qrX    = (W - qrSize) / 2
-      ctx.drawImage(qrImg, qrX, qrY + 28, qrSize, qrSize)
+      doc.addImage(qrDataUrl, 'PNG', qrX, cardY + 8, qrSize, qrSize)
 
-      // scan label
-      ctx.font      = 'bold 12px Arial'
-      ctx.fillStyle = '#6b7280'
-      ctx.textAlign = 'center'
-      ctx.fillText('SCANNER À L\'ENTRÉE', W / 2, qrY + qrSize + 52)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(7)
+      doc.setTextColor(100, 100, 120)
+      doc.text('SCANNER À L\'ENTRÉE', W / 2, cardY + qrSize + 14, { align: 'center' })
 
-      // ref below qr
-      ctx.font      = '11px Arial'
-      ctx.fillStyle = '#9ca3af'
-      ctx.fillText(`Réf: ${ref}`, W / 2, qrY + qrSize + 70)
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(6.5)
+      doc.setTextColor(150, 150, 170)
+      doc.text(`Réf: ${ref}`, W / 2, cardY + qrSize + 20, { align: 'center' })
 
-      // thin purple line at bottom of white card
-      const accentGrad = ctx.createLinearGradient(40, 0, W - 40, 0)
-      accentGrad.addColorStop(0, '#7c3aed')
-      accentGrad.addColorStop(1, '#ff6b35')
-      ctx.fillStyle = accentGrad
-      ctx.fillRect(40, qrY + 374, W - 80, 6)
+      // accent line at bottom of card
+      doc.setFillColor(124, 58, 237)
+      doc.rect(10, cardY + cardH - 3, (W - 20) / 2, 3, 'F')
+      doc.setFillColor(255, 107, 53)
+      doc.rect(10 + (W - 20) / 2, cardY + cardH - 3, (W - 20) / 2, 3, 'F')
+
+      // ── items list ────────────────────────────────────────────
+      let iy = cardY + cardH + 10
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(7.5)
+      doc.setTextColor(160, 140, 200)
+      doc.text('DÉTAIL DES BILLETS', 14, iy)
+      iy += 6
+
+      purchase.items.forEach(item => {
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(8)
+        doc.setTextColor(220, 220, 240)
+        doc.text(`• ${item.eventTitle} — ${item.ticketName} ×${item.qty}`, 14, iy)
+        doc.setTextColor(255, 107, 53)
+        doc.text(`${(item.price * item.qty).toLocaleString('fr-FR')} FCFA`, W - 14, iy, { align: 'right' })
+        iy += 6
+      })
+
+      // total line
+      doc.setDrawColor(60, 40, 90)
+      doc.setLineWidth(0.3)
+      doc.line(14, iy, W - 14, iy)
+      iy += 5
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(9)
+      doc.setTextColor(255, 255, 255)
+      doc.text('TOTAL', 14, iy)
+      doc.setTextColor(255, 107, 53)
+      doc.text(total, W - 14, iy, { align: 'right' })
 
       // ── footer ────────────────────────────────────────────────
-      const footY = qrY + 408
-      ctx.font      = '12px Arial'
-      ctx.fillStyle = 'rgba(255,255,255,0.35)'
-      ctx.textAlign = 'center'
-      ctx.fillText('Merci pour votre achat — ouimoove.com', W / 2, footY)
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(6.5)
+      doc.setTextColor(60, 50, 90)
+      doc.text('Merci pour votre achat sur OuiMoove !   •   ouimoove.com', W / 2, H - 6, { align: 'center' })
+      doc.text(`Généré le ${new Date().toLocaleDateString('fr-FR')}`, W / 2, H - 2, { align: 'center' })
 
-      // powered by line
-      ctx.font      = '10px Arial'
-      ctx.fillStyle = 'rgba(255,255,255,0.18)'
-      ctx.fillText(`Généré le ${new Date().toLocaleDateString('fr-FR')}`, W / 2, footY + 20)
-
-      // ── download ──────────────────────────────────────────────
-      const dataUrl = canvas.toDataURL('image/png')
-      const a = document.createElement('a')
-      a.href     = dataUrl
-      a.download = `billet-ouimoove-${ref}.png`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-
+      doc.save(`billet-ouimoove-${ref}.pdf`)
       toast('Billet téléchargé ✓', 'success')
-    } catch(e) {
+    } catch (e) {
       console.error(e)
       toast('Erreur lors du téléchargement', 'error')
     }
