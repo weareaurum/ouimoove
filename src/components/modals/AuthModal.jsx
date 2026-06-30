@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Modal, ModalHeader, ModalBody } from '../Modal.jsx'
+import { TermsBody } from './InfoModals.jsx'
 import styles from './AuthModal.module.css'
 
 const GoogleIcon = () => (
@@ -62,14 +63,29 @@ function SignupForm({ onSignup, onGoogle, onSwitch }) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [pwd, setPwd] = useState('')
+  const [agreed, setAgreed] = useState(false)
+  const [showTerms, setShowTerms] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
   const submit = async () => {
+    if (!agreed) { setError('Veuillez accepter les conditions d’utilisation pour continuer.'); return }
     setLoading(true)
     const err = await onSignup(name, email, pwd)
     setLoading(false)
     if (err) setError(err)
+  }
+
+  if (showTerms) {
+    return (
+      <>
+        <button className={styles.backLink} onClick={() => setShowTerms(false)}>← Retour à l’inscription</button>
+        <div className={styles.termsScroll}><TermsBody /></div>
+        <button className={styles.submitBtn} onClick={() => { setAgreed(true); setShowTerms(false); setError('') }}>
+          J’accepte les conditions
+        </button>
+      </>
+    )
   }
 
   return (
@@ -96,9 +112,20 @@ function SignupForm({ onSignup, onGoogle, onSwitch }) {
           onKeyDown={e => e.key === 'Enter' && submit()} />
       </div>
 
+      <label className={styles.terms}>
+        <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} />
+        <span>
+          J’accepte les{' '}
+          <span className={styles.link} onClick={(e) => { e.preventDefault(); setShowTerms(true) }}>
+            conditions d’utilisation
+          </span>{' '}
+          et la politique de confidentialité de OuiMoove.
+        </span>
+      </label>
+
       {error && <p className={styles.error}>{error}</p>}
 
-      <button className={styles.submitBtn} onClick={submit} disabled={loading}>
+      <button className={styles.submitBtn} onClick={submit} disabled={loading || !agreed}>
         {loading ? 'Création…' : 'Créer le compte'}
       </button>
 

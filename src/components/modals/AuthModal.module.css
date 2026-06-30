@@ -15,7 +15,7 @@
   transition: all .2s;
   margin-bottom: 4px;
 }
-.googleBtn:hover { border-color: var(--purple); background: rgba(124,58,237,.08); }
+.googleBtn:hover { border-color: var(--purple); background: rgba(142,45,110,.08); }
 
 .divider {
   text-align: center;
@@ -65,7 +65,7 @@
 
 .submitBtn {
   width: 100%;
-  background: linear-gradient(135deg, var(--orange), #e85d04);
+  background: linear-gradient(135deg, var(--orange), #d97f0a);
   color: #fff;
   border: none;
   border-radius: 10px;
@@ -75,10 +75,50 @@
   font-weight: 600;
   cursor: pointer;
   transition: all .2s;
-  box-shadow: 0 4px 20px rgba(255,107,53,.3);
+  box-shadow: 0 4px 20px rgba(245,166,35,.3);
 }
-.submitBtn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(255,107,53,.4); }
+.submitBtn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(245,166,35,.4); }
 .submitBtn:disabled { opacity: .6; cursor: not-allowed; }
+
+.terms {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 0.82rem;
+  color: var(--muted);
+  line-height: 1.5;
+  margin: 4px 0 16px;
+  cursor: pointer;
+}
+.terms input {
+  margin-top: 2px;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--purple);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.backLink {
+  background: none;
+  border: none;
+  color: var(--purple3);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 12px;
+}
+
+.termsScroll {
+  max-height: 50vh;
+  overflow-y: auto;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-bottom: 16px;
+}
 
 .switchTxt {
   text-align: center;

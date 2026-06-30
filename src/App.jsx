@@ -4,7 +4,9 @@ import { useToast } from './hooks/useToast.js'
 import { Navbar } from './components/Navbar.jsx'
 import { Hero } from './components/Hero.jsx'
 import { EventGrid } from './components/EventGrid.jsx'
+import { Footer } from './components/Footer.jsx'
 import { Toast } from './components/Toast.jsx'
+import { OnboardingModal, FaqModal, ContactModal, TermsModal } from './components/modals/InfoModals.jsx'
 import { AuthModal } from './components/modals/AuthModal.jsx'
 import { EventDetailModal } from './components/modals/EventDetailModal.jsx'
 import { CartModal } from './components/modals/CartModal.jsx'
@@ -97,6 +99,22 @@ function App() {
       }
     })()
   }, [store.user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── First-visit onboarding ─────────────────────────────────
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const hasFlow = params.get('paydunya_return') || params.get('paydunya_cancel') || params.get('invite')
+    if (hasFlow) return
+    if (!localStorage.getItem('om_onboarded')) {
+      const t = setTimeout(() => setModal(m => m ?? 'onboarding'), 600)
+      return () => clearTimeout(t)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const closeOnboarding = () => {
+    localStorage.setItem('om_onboarded', '1')
+    close()
+  }
 
   const requireAuth = (then) => {
     if (!store.user) { open('login'); return false }
@@ -430,6 +448,37 @@ function App() {
           return await handleBuyResale(listing, method, phone)
         }}
       />
+
+      <Footer
+        onHowItWorks={() => open('onboarding')}
+        onFaq={() => open('faq')}
+        onContact={() => open('contact')}
+        onTerms={() => open('terms')}
+        onMarket={() => open('market')}
+        onCreateEvent={handleCreateEvent}
+      />
+
+      {/* ── Onboarding / How it works ── */}
+      <OnboardingModal open={modal === 'onboarding'} onClose={closeOnboarding} />
+
+      {/* ── FAQ ── */}
+      <FaqModal
+        open={modal === 'faq'}
+        onClose={close}
+        onContact={() => open('contact')}
+      />
+
+      {/* ── Contact ── */}
+      <ContactModal
+        open={modal === 'contact'}
+        onClose={close}
+        user={store.user}
+        toast={toast}
+        onSubmit={store.submitContact}
+      />
+
+      {/* ── Terms ── */}
+      <TermsModal open={modal === 'terms'} onClose={close} />
 
       <Toast toasts={toasts} />
     </>

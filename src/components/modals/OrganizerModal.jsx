@@ -367,7 +367,7 @@ function EventForm({ initial, submitLabel, onSubmit, onCancel, onUploadImage, on
       {/* Private toggle */}
       <div
         onClick={() => setIsPrivate(v => !v)}
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: isPrivate ? 'rgba(124,58,237,.12)' : 'var(--bg3)', border: `1px solid ${isPrivate ? 'var(--purple)' : 'var(--border)'}`, borderRadius: 10, padding: '12px 14px', marginBottom: 14, cursor: 'pointer', transition: 'all .2s', userSelect: 'none' }}
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: isPrivate ? 'rgba(142,45,110,.12)' : 'var(--bg3)', border: `1px solid ${isPrivate ? 'var(--purple)' : 'var(--border)'}`, borderRadius: 10, padding: '12px 14px', marginBottom: 14, cursor: 'pointer', transition: 'all .2s', userSelect: 'none' }}
       >
         <div>
           <div style={{ fontWeight: 600, fontSize: '0.88rem', color: isPrivate ? 'var(--purple3)' : 'var(--text)' }}>🔒 Événement privé</div>
@@ -548,7 +548,7 @@ function CheckinDialog({ order, eventId, onConfirm, onClose }) {
                 </div>
                 <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
                   {Array.from({ length: remaining }, (_, i) => i + 1).map(n => (
-                    <button key={n} onClick={() => setCount(n)} style={{ padding: '4px 12px', borderRadius: 8, border: `1px solid ${count === n ? 'var(--purple)' : 'var(--border)'}`, background: count === n ? 'rgba(124,58,237,.15)' : 'var(--bg3)', color: count === n ? 'var(--purple3)' : 'var(--muted)', cursor: 'pointer', fontSize: '0.82rem', fontWeight: count === n ? 700 : 400 }}>
+                    <button key={n} onClick={() => setCount(n)} style={{ padding: '4px 12px', borderRadius: 8, border: `1px solid ${count === n ? 'var(--purple)' : 'var(--border)'}`, background: count === n ? 'rgba(142,45,110,.15)' : 'var(--bg3)', color: count === n ? 'var(--purple3)' : 'var(--muted)', cursor: 'pointer', fontSize: '0.82rem', fontWeight: count === n ? 700 : 400 }}>
                       {n === remaining ? `Tous (${n})` : n}
                     </button>
                   ))}
@@ -560,7 +560,7 @@ function CheckinDialog({ order, eventId, onConfirm, onClose }) {
               width: '100%', padding: '14px', borderRadius: 14, border: 'none',
               background: 'linear-gradient(135deg, var(--purple), var(--purple2))',
               color: '#fff', fontWeight: 700, fontSize: '1rem', cursor: 'pointer',
-              boxShadow: '0 4px 20px rgba(124,58,237,.35)', opacity: busy ? 0.7 : 1,
+              boxShadow: '0 4px 20px rgba(142,45,110,.35)', opacity: busy ? 0.7 : 1,
             }}>
               {busy ? 'Validation…' : `✓ Valider ${count} billet${count > 1 ? 's' : ''}`}
             </button>
@@ -637,7 +637,7 @@ function AttendeesTab({ myEvents, organizerOrders, onCheckin, onCheckinByRef, on
             background: 'linear-gradient(135deg, var(--purple), var(--purple2))',
             color: '#fff', fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            boxShadow: '0 4px 16px rgba(124,58,237,.3)',
+            boxShadow: '0 4px 16px rgba(142,45,110,.3)',
           }}
         >
           📷 Scanner un billet
@@ -1100,7 +1100,7 @@ export function OrganizerModal({
             <button
               key={t.id}
               onClick={() => { setTab(t.id); if (t.id !== 'events') setEditingEvent(null) }}
-              style={{ flex: 1, minWidth: 70, padding: '8px 10px', borderRadius: 8, border: 'none', background: tab === t.id ? 'var(--bg2)' : 'transparent', color: tab === t.id ? 'var(--text)' : 'var(--muted)', cursor: 'pointer', fontSize: '0.78rem', transition: 'all .2s', boxShadow: tab === t.id ? '0 1px 4px rgba(0,0,0,.3)' : 'none', whiteSpace: 'nowrap' }}
+              style={{ flex: 1, minWidth: 70, padding: '8px 10px', borderRadius: 8, border: 'none', background: tab === t.id ? 'var(--bg2)' : 'transparent', color: tab === t.id ? 'var(--text)' : 'var(--muted)', cursor: 'pointer', fontSize: '0.78rem', transition: 'all .2s', boxShadow: tab === t.id ? '0 1px 5px rgba(36,18,46,.12)' : 'none', whiteSpace: 'nowrap' }}
             >
               {t.label}
               {t.id === 'admin' && applications?.length > 0 && (

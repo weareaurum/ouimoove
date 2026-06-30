@@ -1,7 +1,7 @@
 /* Tab bar */
 .tabBar { display: flex; gap: 4px; background: var(--bg3); border-radius: 12px; padding: 4px; margin-bottom: 22px; flex-wrap: wrap; }
 .tab { flex: 1; min-width: 80px; padding: 8px 10px; border-radius: 8px; border: none; background: transparent; color: var(--muted); cursor: pointer; font-size: 0.82rem; transition: all .2s; white-space: nowrap; }
-.tabActive { background: var(--bg2); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,.3); }
+.tabActive { background: var(--bg2); color: var(--text); box-shadow: 0 1px 5px rgba(36,18,46,.12); }
 
 /* Stats */
 .statsGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 24px; }
@@ -32,10 +32,10 @@
 .removeTtBtn { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--danger); cursor: pointer; font-size: 0.8rem; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all .2s; }
 .removeTtBtn:hover { background: rgba(239,68,68,.1); border-color: var(--danger); }
 .addTtBtn { padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--purple3); cursor: pointer; font-size: 0.82rem; transition: all .2s; margin-bottom: 16px; display: inline-flex; align-items: center; gap: 4px; }
-.addTtBtn:hover { border-color: var(--purple); background: rgba(124,58,237,.1); }
+.addTtBtn:hover { border-color: var(--purple); background: rgba(142,45,110,.1); }
 .error { color: var(--danger); font-size: 0.82rem; margin-bottom: 10px; }
-.publishBtn { width: 100%; background: linear-gradient(135deg, var(--purple), var(--purple2)); color: #fff; border: none; border-radius: 12px; padding: 12px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all .2s; box-shadow: 0 4px 20px rgba(124,58,237,.3); }
-.publishBtn:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(124,58,237,.4); }
+.publishBtn { width: 100%; background: linear-gradient(135deg, var(--purple), var(--purple2)); color: #fff; border: none; border-radius: 12px; padding: 12px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all .2s; box-shadow: 0 4px 20px rgba(142,45,110,.3); }
+.publishBtn:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(142,45,110,.4); }
 
 /* Attendees */
 .attendeeList { display: flex; flex-direction: column; gap: 2px; }

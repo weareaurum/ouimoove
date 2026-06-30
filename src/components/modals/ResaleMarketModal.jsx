@@ -64,7 +64,7 @@ function ListingCard({ listing, currentUserId, onBuy }) {
             </div>
           </div>
           {isOwn && (
-            <span style={{ background: 'rgba(124,58,237,.15)', color: 'var(--purple2)', fontSize: '0.7rem', fontWeight: 700, borderRadius: 99, padding: '2px 8px', whiteSpace: 'nowrap', flexShrink: 0 }}>
+            <span style={{ background: 'rgba(142,45,110,.15)', color: 'var(--purple2)', fontSize: '0.7rem', fontWeight: 700, borderRadius: 99, padding: '2px 8px', whiteSpace: 'nowrap', flexShrink: 0 }}>
               Ma vente
             </span>
           )}
@@ -137,7 +137,7 @@ function BuyPanel({ listing, onConfirm, onCancel, busy }) {
         ].map(m => (
           <button key={m.id} onClick={() => setMethod(m.id)} style={{
             padding: '7px 14px', borderRadius: 10, border: `1px solid ${method === m.id ? 'var(--orange)' : 'var(--border)'}`,
-            background: method === m.id ? 'rgba(255,107,53,.12)' : 'transparent',
+            background: method === m.id ? 'rgba(245,166,35,.12)' : 'transparent',
             color: method === m.id ? 'var(--orange)' : 'var(--muted)',
             cursor: 'pointer', fontSize: '0.8rem', fontWeight: method === m.id ? 700 : 400,
           }}>{m.label}</button>

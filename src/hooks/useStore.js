@@ -1233,6 +1233,25 @@ export function useStore() {
     return data
   }, [])
 
+  // ── CONTACT ────────────────────────────────────────────────
+  const submitContact = useCallback(async ({ name, email, subject, message }) => {
+    if (!name?.trim() || !email?.trim() || !message?.trim()) {
+      return { ok: false, error: 'Veuillez remplir tous les champs requis.' }
+    }
+    const { error } = await supabase.from('contact_messages').insert({
+      name:    name.trim(),
+      email:   email.trim(),
+      subject: subject?.trim() || null,
+      message: message.trim(),
+      user_id: user?.id || null,
+    })
+    if (error) {
+      console.error('submitContact:', error)
+      return { ok: false, error: "Impossible d'envoyer le message. Réessayez." }
+    }
+    return { ok: true }
+  }, [user])
+
   // ── REFRESH ────────────────────────────────────────────────
   const refreshOrganizerData = useCallback(async () => {
     if (!user?.id) return
@@ -1304,6 +1323,8 @@ export function useStore() {
     loadVerificationRequests,
     approveVerification,
     denyVerification,
+
+    submitContact,
 
     refreshOrganizerData,
     loadEvents,

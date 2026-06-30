@@ -5,8 +5,8 @@
 }
 .card:hover {
   transform: translateY(-4px);
-  border-color: rgba(124,58,237,.4);
-  box-shadow: 0 20px 60px rgba(0,0,0,.5), 0 0 0 1px rgba(124,58,237,.2);
+  border-color: rgba(142,45,110,.4);
+  box-shadow: 0 18px 44px rgba(142,45,110,.16), 0 0 0 1px rgba(142,45,110,.12);
 }
 .imgWrap { position: relative; }
 .coverImg {

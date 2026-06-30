@@ -123,7 +123,7 @@ function TicketCard({ purchase, myListings, toast, onListForResale, onCancelList
               {!isRefunded && !item.resold && !item.checkedIn && !item.isResale && onListForResale && (
                 <div style={{ marginTop: 4, marginBottom: 4 }}>
                   {listing ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,107,53,.08)', border: '1px solid rgba(255,107,53,.3)', borderRadius: 8, padding: '6px 10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(245,166,35,.08)', border: '1px solid rgba(245,166,35,.3)', borderRadius: 8, padding: '6px 10px' }}>
                       <span style={{ fontSize: '0.78rem', color: 'var(--orange)', flex: 1 }}>
                         🏷️ En vente à {listing.ask_price_cfa.toLocaleString('fr-FR')} FCFA
                       </span>

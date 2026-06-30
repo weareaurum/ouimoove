@@ -1,20 +1,20 @@
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
-  --bg:       #0a0a0f;
-  --bg2:      #111118;
-  --bg3:      #1a1a26;
-  --card:     #15151f;
-  --border:   rgba(255,255,255,0.07);
-  --orange:   #ff6b35;
-  --orange2:  #ff8c5a;
-  --purple:   #7c3aed;
-  --purple2:  #9d5cf5;
-  --purple3:  #c084fc;
-  --text:     #f0eeff;
-  --muted:    #8b87a8;
-  --danger:   #ef4444;
-  --success:  #22c55e;
+  --bg:       #fbf7f3;   /* warm off-white */
+  --bg2:      #ffffff;   /* cards / modals */
+  --bg3:      #f3edf0;   /* subtle plum-tinted surface (inputs, chips) */
+  --card:     #ffffff;
+  --border:   rgba(36,18,46,0.10);
+  --orange:   #f5a623;   /* logo amber */
+  --orange2:  #ffbe57;
+  --purple:   #8e2d6e;   /* logo plum */
+  --purple2:  #b14b91;
+  --purple3:  #7a2660;   /* deep plum for text accents on light */
+  --text:     #241626;   /* near-black plum */
+  --muted:    #80708a;   /* muted plum-grey */
+  --danger:   #e23d3d;
+  --success:  #1da153;
   --radius:   16px;
   --font-display: 'Syne', sans-serif;
   --font-body:    'DM Sans', sans-serif;
@@ -38,7 +38,7 @@ body::before {
   z-index: 0;
   pointer-events: none;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-  opacity: 0.35;
+  opacity: 0.12;
 }
 
 ::-webkit-scrollbar { width: 6px; }
