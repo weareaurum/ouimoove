@@ -66,7 +66,7 @@ export const DEFAULT_EVENTS = [
 ]
 
 export const CATEGORIES = ['Musique', 'Festival', 'Sport', 'Tech', 'Culturel', 'Gastronomie']
-export const CITIES     = ['Lomé', 'Accra', 'Abidjan', 'Dakar', 'Lagos']
+export const CITIES     = ['Lomé', 'Cotonou', 'Ouidah', 'Accra', 'Abidjan', 'Dakar', 'Lagos']
 
 export const CATEGORY_EMOJI = {
   Musique: '🎵', Festival: '🎪', Sport: '⚽',
