@@ -178,13 +178,16 @@ export function ResaleMarketModal({ open, listings, currentUserId, loading, onCl
   const [busy,          setBusy]          = useState(false)
   const [search,        setSearch]        = useState('')
 
+  const today = new Date().toISOString().slice(0, 10)
+  const upcoming = listings.filter(l => !l.event_date || l.event_date.slice(0, 10) >= today)
+
   const filtered = search.trim()
-    ? listings.filter(l =>
+    ? upcoming.filter(l =>
         l.event_title.toLowerCase().includes(search.toLowerCase()) ||
         l.ticket_name.toLowerCase().includes(search.toLowerCase()) ||
         (l.event_city || '').toLowerCase().includes(search.toLowerCase())
       )
-    : listings
+    : upcoming
 
   const handleBuy = async (listing, method, phone) => {
     setBusy(true)

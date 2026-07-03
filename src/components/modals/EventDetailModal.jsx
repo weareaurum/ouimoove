@@ -10,7 +10,10 @@ export function EventDetailModal({ open, event, onClose, onAddToCart }) {
 
   if (!event) return null
 
+  const isPast = event.date < new Date().toISOString().slice(0, 10)
+
   const changeQty = (idx, delta) => {
+    if (isPast) return
     const key = `${event.id}_${idx}`
     const avail = event.tickets[idx].total - event.tickets[idx].sold
     const cur = selections[key] ?? 0
@@ -58,9 +61,9 @@ export function EventDetailModal({ open, event, onClose, onAddToCart }) {
                 <div className={styles.ticketLeft}>{avail} restants</div>
               </div>
               <div className={styles.qtyCtrl}>
-                <button className={styles.qtyBtn} onClick={() => changeQty(i, -1)}>−</button>
+                <button className={styles.qtyBtn} onClick={() => changeQty(i, -1)} disabled={isPast}>−</button>
                 <span className={styles.qtyVal}>{qty}</span>
-                <button className={styles.qtyBtn} onClick={() => changeQty(i, +1)} disabled={qty >= avail}>+</button>
+                <button className={styles.qtyBtn} onClick={() => changeQty(i, +1)} disabled={isPast || qty >= avail}>+</button>
               </div>
             </div>
           )
@@ -71,9 +74,13 @@ export function EventDetailModal({ open, event, onClose, onAddToCart }) {
           <span className={styles.totalVal}>{total.toLocaleString('fr-FR')} FCFA</span>
         </div>
 
-        <button className={styles.addBtn} onClick={() => onAddToCart(selections)}>
-          Ajouter au panier 🛒
-        </button>
+        {isPast ? (
+          <div className={styles.pastNotice}>Cet événement est déjà passé — les billets ne sont plus disponibles.</div>
+        ) : (
+          <button className={styles.addBtn} onClick={() => onAddToCart(selections)}>
+            Ajouter au panier 🛒
+          </button>
+        )}
       </ModalBody>
     </Modal>
   )

@@ -8,7 +8,9 @@ export function EventGrid({
   onOpenEvent, onToggleFav, loading, error,
 }) {
   const filtered = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10)
     let evs = events.filter((e) => {
+      if (e.date < today) return false
       const q = search.toLowerCase()
       const matchQ = !q || e.title.toLowerCase().includes(q) || e.desc.toLowerCase().includes(q)
       const matchCat  = !filterCategory || e.category === filterCategory

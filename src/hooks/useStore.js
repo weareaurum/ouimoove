@@ -418,6 +418,8 @@ export function useStore() {
 
   // ── CART ───────────────────────────────────────────────────
   const addToCart = useCallback((event, selections) => {
+    const today = new Date().toISOString().slice(0, 10)
+    if (event.date < today) return { error: 'Cet événement est déjà passé.' }
     const items = Object.entries(selections)
       .filter(([, qty]) => qty > 0)
       .map(([key, qty]) => {
@@ -449,6 +451,13 @@ export function useStore() {
   // ── PURCHASE (simulation or PayDunya) ──────────────────────
   const purchase = useCallback(async (method, phone = '', discountAmount = 0) => {
     if (!user || !cart.length) return null
+
+    const today = new Date().toISOString().slice(0, 10)
+    const stale = cart.some((item) => {
+      const ev = events.find((e) => e.id === item.eventId)
+      return ev && ev.date < today
+    })
+    if (stale) return { error: 'Un des événements de votre panier est déjà passé. Retirez-le pour continuer.' }
 
     const rawTotal = cart.reduce((s, i) => s + i.price * i.qty, 0)
     const total    = Math.max(0, rawTotal - discountAmount)
