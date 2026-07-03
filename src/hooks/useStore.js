@@ -367,8 +367,12 @@ export function useStore() {
     const u = data.user
     if (!u) return { ok: false, error: 'Création du compte impossible.' }
     const profile = { id: u.id, name, email: u.email }
-    setUserState(profile)
+    // No session yet means email confirmation is required — don't mark the
+    // user as logged in until they actually have a real, authenticated
+    // session, otherwise authenticated requests (storage, RLS-protected
+    // inserts) fail silently because auth.uid() is null server-side.
     if (!data.session) return { ok: true, user: profile, needsEmailConfirmation: true }
+    setUserState(profile)
     await loadFavorites(u.id)
     return { ok: true, user: profile }
   }, [loadFavorites])
