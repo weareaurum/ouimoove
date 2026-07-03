@@ -4,7 +4,7 @@ import styles from './Navbar.module.css'
 export function Navbar({
   user, cartCount, isOrganizer,
   onLogin, onSignup, onCart, onTickets,
-  onFavorites, onProfile, onOrganizer, onLogout, onLogoClick, onMarket, onCreateEvent,
+  onFavorites, onProfile, onOrganizer, onLogout, onLogoClick, onMarket, onCreateEvent, onFeed,
 }) {
   const [logoErr, setLogoErr] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -44,6 +44,7 @@ export function Navbar({
                 {cartCount > 0 && <span className={styles.badge}>{cartCount}</span>}
               </button>
               <button className={styles.btnGhost} onClick={onTickets}>🎟️ <span className={styles.label}>Mes Billets</span></button>
+              <button className={styles.btnGhost} onClick={onFeed}>📸 <span className={styles.label}>Feed</span></button>
               <button className={styles.btnGhost} onClick={onMarket}>🏪 <span className={styles.label}>Marché</span></button>
               {isOrganizer && (
                 <button className={styles.btnPurple} onClick={onOrganizer}>📊 <span className={styles.label}>Dashboard</span></button>
@@ -84,6 +85,7 @@ export function Navbar({
               <button className={styles.drawerBtnPrimary} onClick={close(onCreateEvent)}>✚ Créer un événement</button>
               <button className={styles.drawerBtn} onClick={close(onFavorites)}>❤️ Favoris</button>
               <button className={styles.drawerBtn} onClick={close(onTickets)}>🎟️ Mes Billets</button>
+              <button className={styles.drawerBtn} onClick={close(onFeed)}>📸 Feed</button>
               <button className={styles.drawerBtn} onClick={close(onMarket)}>🏪 Marché de revente</button>
               {isOrganizer && (
                 <button className={styles.drawerBtnPurple} onClick={close(onOrganizer)}>📊 Dashboard organisateur</button>

@@ -16,6 +16,7 @@ import { FavoritesModal } from './components/modals/FavoritesModal.jsx'
 import { ProfileModal } from './components/modals/ProfileModal.jsx'
 import { OrganizerModal } from './components/modals/OrganizerModal.jsx'
 import { ResaleMarketModal } from './components/modals/ResaleMarketModal.jsx'
+import { FeedModal } from './components/modals/FeedModal.jsx'
 
 function App() {
   const store = useStore()
@@ -122,6 +123,8 @@ function App() {
     return true
   }
 
+  const openFeed = () => requireAuth(() => { store.loadFeedPosts(); open('feed') })
+
   const openEvent = (id) => { setSelectedEventId(id); open('event') }
 
   const handleAddToCart = (event, selections) => {
@@ -194,6 +197,7 @@ function App() {
         onSignup={() => open('signup')}
         onCart={() => open('cart')}
         onTickets={() => requireAuth(() => open('tickets'))}
+        onFeed={openFeed}
         onFavorites={() => requireAuth(() => open('favorites'))}
         onProfile={() => requireAuth(() => open('profile'))}
         onOrganizer={() => requireAuth(() => open('organizer'))}
@@ -447,6 +451,23 @@ function App() {
           if (!store.user) { open('login'); return null }
           return await handleBuyResale(listing, method, phone)
         }}
+      />
+
+      {/* ── Feed ── */}
+      <FeedModal
+        open={modal === 'feed'}
+        posts={store.feedPosts}
+        events={store.events}
+        loading={store.loading.feed}
+        currentUserId={store.user?.id}
+        onClose={close}
+        onCreate={store.createFeedPost}
+        onDelete={async (postId) => {
+          const ok = await store.deleteFeedPost(postId)
+          if (ok) toast('Moment supprimé', 'info')
+          else toast('Impossible de supprimer ce moment', 'error')
+        }}
+        toast={toast}
       />
 
       <Footer
