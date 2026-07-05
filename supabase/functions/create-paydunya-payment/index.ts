@@ -61,7 +61,13 @@ serve(async (req) => {
     })
     const data = await res.json()
 
-    return new Response(JSON.stringify(data), {
+    // Compute the customer-facing checkout URL server-side, from the actual
+    // PAYDUNYA_MODE — the client has no reliable way to know whether this
+    // invoice was created live or in sandbox, so it must not guess.
+    const checkoutBase = Deno.env.get('PAYDUNYA_MODE') === 'live' ? 'checkout' : 'sandbox-checkout'
+    const checkout_url = data?.token ? `https://app.paydunya.com/${checkoutBase}/invoice/${data.token}` : null
+
+    return new Response(JSON.stringify({ ...data, checkout_url }), {
       headers: { ...CORS, 'Content-Type': 'application/json' },
     })
   } catch (err) {

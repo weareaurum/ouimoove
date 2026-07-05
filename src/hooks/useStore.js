@@ -488,14 +488,29 @@ export function useStore() {
       })
       if (orderError) { console.error('purchase pending order:', orderError); return null }
 
-      // Save pending context
+      // Persist what's needed to complete the order server-side — either when
+      // the browser returns, or via the PayDunya webhook if it never does.
+      const cartSnapshot = cart.map((i) => ({
+        eventId: i.eventId, ticketTypeId: i.ticketTypeId, qty: i.qty, price: i.price,
+        eventTitle: i.eventTitle, ticketName: i.ticketName,
+      }))
+      const { error: pendingError } = await supabase.from('pending_payments').insert({
+        token:   pdData.token,
+        order_id: orderId,
+        type:    'purchase',
+        user_id: user.id,
+        payload: { cart: cartSnapshot, total },
+      })
+      if (pendingError) { console.error('purchase pending_payments:', pendingError); return null }
+
+      // Kept for the "cancelled at checkout" UI path only — completion itself
+      // now happens server-side (verify-paydunya-payment / paydunya-webhook).
       sessionStorage.setItem('om_pending', JSON.stringify({
-        type: 'purchase', orderId, token: pdData.token, cart: [...cart], total, userId: user.id,
+        type: 'purchase', orderId, token: pdData.token, userId: user.id,
       }))
 
       clearCart()
-      const checkoutUrl = `https://app.paydunya.com/${PAYMENT_MODE === 'live' ? '' : 'sandbox-'}checkout/invoice/${pdData.token}`
-      return { redirect: checkoutUrl }
+      return { redirect: pdData.checkout_url }
     }
 
     // ── Simulation flow ──
@@ -549,6 +564,11 @@ export function useStore() {
   }, [user, cart, events, clearCart, loadEvents, loadMyOrders])
 
   // ── VERIFY PAYDUNYA RETURN ─────────────────────────────────
+  // Order completion (order_items, ticket counts, payment_status, resale
+  // transfer, email/push) all happens server-side now — in
+  // verify-paydunya-payment, which is the same code path the paydunya-webhook
+  // hits. This call just asks "is it done yet?" and refreshes the UI; it's
+  // safe to call even if the webhook already completed the order.
   const verifyPaydunyaReturn = useCallback(async () => {
     const raw = sessionStorage.getItem('om_pending')
     if (!raw) return { cancelled: true }
@@ -561,54 +581,7 @@ export function useStore() {
     })
 
     if (verifyError || verifyData?.status !== 'completed') {
-      await supabase.from('orders').delete().eq('id', pending.orderId)
-      if (pending.type === 'resale' && pending.listingId) {
-        await supabase.from('ticket_listings').update({ status: 'active', buyer_id: null }).eq('id', pending.listingId)
-      }
       return { cancelled: true }
-    }
-
-    if (pending.type === 'resale') {
-      // Complete resale purchase
-      const buyerOrderId = pending.orderId
-      const orderItems = [{
-        order_id:       buyerOrderId,
-        event_id:       pending.eventId,
-        ticket_type_id: pending.ticketTypeId,
-        quantity:       pending.quantity,
-        unit_price_cfa: pending.askPrice,
-        is_resale:      true,
-      }]
-      await supabase.from('order_items').insert(orderItems)
-      await supabase.from('orders').update({ payment_status: 'paid' }).eq('id', buyerOrderId)
-      await supabase.from('order_items').update({ resold: true }).eq('id', pending.originalOrderItemId)
-      await supabase.from('ticket_listings').update({
-        status:        'sold',
-        buyer_id:      pending.userId,
-        buyer_order_id: buyerOrderId,
-        sold_at:       new Date().toISOString(),
-      }).eq('id', pending.listingId)
-    } else {
-      // Complete regular purchase
-      const orderItems = pending.cart.map((item) => ({
-        order_id:       pending.orderId,
-        event_id:       item.eventId,
-        ticket_type_id: item.ticketTypeId,
-        quantity:       item.qty,
-        unit_price_cfa: item.price,
-      }))
-      await supabase.from('order_items').insert(orderItems)
-      await supabase.from('orders').update({ payment_status: 'paid' }).eq('id', pending.orderId)
-
-      for (const item of pending.cart) {
-        const ev = events.find((e) => e.id === item.eventId)
-        const tk = ev?.tickets.find((t) => t.id === item.ticketTypeId)
-        if (!tk) continue
-        await supabase
-          .from('ticket_types')
-          .update({ quantity_sold: Math.min((tk.sold || 0) + item.qty, tk.total) })
-          .eq('id', item.ticketTypeId)
-      }
     }
 
     const freshEvents = await loadEvents()
@@ -616,20 +589,8 @@ export function useStore() {
     if (uid) await loadMyOrders(uid, freshEvents, user?.name || '')
     await loadResaleListings()
 
-    // Email + push after PayDunya verify — fire-and-forget
-    if (pending.type !== 'resale' && user?.email) {
-      supabase.functions.invoke('send-ticket-email', { body: { to: user.email, userName: user.name, orderId: pending.orderId, items: (pending.cart || []).map(i => ({ eventTitle: i.eventTitle, ticketName: i.ticketName, price: i.price, qty: i.qty })), total: pending.total, method: 'paydunya' } }).catch(console.error)
-    }
-    if (uid) {
-      supabase.from('push_subscriptions').select('endpoint,p256dh,auth_key').eq('user_id', uid).then(({ data: subs }) => {
-        for (const s of subs ?? []) {
-          supabase.functions.invoke('send-push', { body: { subscription: { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth_key } }, title: '🎉 Paiement confirmé !', body: `Vos billets sont prêts.`, url: window.location.origin } }).catch(console.error)
-        }
-      })
-    }
-
     return { ok: true }
-  }, [user, events, loadEvents, loadMyOrders, loadResaleListings])
+  }, [user, loadEvents, loadMyOrders, loadResaleListings])
 
   // ── RESALE: list a ticket ───────────────────────────────────
   const listTicketForResale = useCallback(async ({
@@ -730,21 +691,28 @@ export function useStore() {
         paydunya_token: pdData.token,
       })
 
+      await supabase.from('pending_payments').insert({
+        token:    pdData.token,
+        order_id: buyerOrderId,
+        type:     'resale',
+        user_id:  user.id,
+        payload: {
+          listingId:           listing.id,
+          eventId:             listing.event_id,
+          ticketTypeId:        listing.ticket_type_id,
+          quantity:            listing.quantity,
+          askPrice:            listing.ask_price_cfa,
+          originalOrderItemId: listing.order_item_id,
+        },
+      })
+
+      // Kept for the "cancelled at checkout" UI path only — completion itself
+      // now happens server-side (verify-paydunya-payment / paydunya-webhook).
       sessionStorage.setItem('om_pending', JSON.stringify({
-        type:              'resale',
-        orderId:           buyerOrderId,
-        token:             pdData.token,
-        listingId:         listing.id,
-        eventId:           listing.event_id,
-        ticketTypeId:      listing.ticket_type_id,
-        quantity:          listing.quantity,
-        askPrice:          listing.ask_price_cfa,
-        originalOrderItemId: listing.order_item_id,
-        userId:            user.id,
+        type: 'resale', orderId: buyerOrderId, token: pdData.token, listingId: listing.id, userId: user.id,
       }))
 
-      const resaleCheckoutUrl = `https://app.paydunya.com/${PAYMENT_MODE === 'live' ? '' : 'sandbox-'}checkout/invoice/${pdData.token}`
-      return { redirect: resaleCheckoutUrl }
+      return { redirect: pdData.checkout_url }
     }
 
     // ── Simulation flow ──
