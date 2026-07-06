@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { DEFAULT_EVENTS } from '../data/events.js'
 import { supabase } from '../lib/supabase.js'
 
@@ -69,6 +69,8 @@ export function useStore() {
   const [userNumber,      setUserNumber]      = useState(null)
   const [isVerified,      setIsVerified]      = useState(false)
   const [events,          setEventsState]     = useState([])
+  const eventsRef = useRef(events)
+  useEffect(() => { eventsRef.current = events }, [events])
   const [cart,            setCartState]       = useState(() => {
     try { return JSON.parse(localStorage.getItem('om_cart')) || [] } catch { return [] }
   })
@@ -96,8 +98,11 @@ export function useStore() {
   }, [])
 
   // ── LOAD EVENTS ────────────────────────────────────────────
-  const loadEvents = useCallback(async () => {
-    setLoad('events', true)
+  // `silent` skips the loading flag — used by the realtime subscription below
+  // so a background ticket-count refresh doesn't flash the whole grid to a
+  // spinner for every visitor whenever anyone's purchase completes.
+  const loadEvents = useCallback(async (silent = false) => {
+    if (!silent) setLoad('events', true)
     setErr('events', null)
 
     const { data, error } = await supabase
@@ -110,7 +115,7 @@ export function useStore() {
       .eq('status', 'published')
       .order('event_date', { ascending: true })
 
-    setLoad('events', false)
+    if (!silent) setLoad('events', false)
 
     if (error) {
       console.error('loadEvents:', error)
@@ -288,7 +293,7 @@ export function useStore() {
     const channel = supabase
       .channel('ticket_types_sold')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'ticket_types' }, () => {
-        loadEvents()
+        loadEvents(true)
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
@@ -1142,14 +1147,18 @@ export function useStore() {
     return true
   }, [feedPosts])
 
-  // Realtime: new posts appear for everyone without a refresh
+  // Realtime: new posts appear for everyone without a refresh.
+  // Subscribes once — reads eventsRef instead of depending on `events`
+  // directly, since loadEvents() produces a new array on every background
+  // refresh (e.g. the ticket-count realtime callback above) and would
+  // otherwise force this channel to unsubscribe/resubscribe constantly.
   useEffect(() => {
     const channel = supabase
       .channel('event_posts_feed')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'event_posts' }, (payload) => {
         setFeedPosts((prev) => {
           if (prev.some((p) => p.id === payload.new.id)) return prev
-          const ev = events.find((e) => e.id === payload.new.event_id)
+          const ev = eventsRef.current.find((e) => e.id === payload.new.event_id)
           return [shapeFeedPost({
             ...payload.new,
             events: ev ? { title: ev.title, venue: ev.location, city: ev.city, emoji: ev.emoji } : null,
@@ -1158,7 +1167,7 @@ export function useStore() {
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
-  }, [events])
+  }, [])
 
   // ── PUSH SUBSCRIPTIONS ─────────────────────────────────────
   const VAPID_PUBLIC = import.meta.env.VITE_VAPID_PUBLIC_KEY ?? ''
