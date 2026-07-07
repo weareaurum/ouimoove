@@ -81,6 +81,7 @@ export function useStore() {
   const [applications,    setApplications]    = useState([])
   const [resaleListings,  setResaleListings]  = useState([])
   const [feedPosts,       setFeedPosts]       = useState([])
+  const [justPaidOrder,   setJustPaidOrder]   = useState(null)
 
   const [loading, setLoading] = useState({
     events: true, orders: false, orgOrders: false, stats: false, resale: false, feed: false,
@@ -298,6 +299,29 @@ export function useStore() {
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [loadEvents])
+
+  // ── REALTIME: notify when one of my orders gets marked paid ────
+  // Order completion can happen via the browser's own return-flow call OR
+  // independently via the paydunya-webhook (e.g. if the browser never made
+  // it back to the return URL). This subscription is what lets the "here
+  // are your tickets" celebration fire in the second case too — it reacts
+  // to the actual DB transition rather than relying solely on the redirect.
+  useEffect(() => {
+    if (!user?.id) return
+    const channel = supabase
+      .channel(`my_orders_${user.id}`)
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'public', table: 'orders', filter: `user_id=eq.${user.id}`,
+      }, (payload) => {
+        if (payload.new.payment_status === 'paid' && payload.old?.payment_status !== 'paid') {
+          setJustPaidOrder({ orderId: payload.new.id, at: Date.now() })
+          loadEvents(true)
+          loadMyOrders(user.id, eventsRef.current, user.name)
+        }
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [user?.id, user?.name, loadEvents, loadMyOrders])
 
   // ── AUTH STATE ─────────────────────────────────────────────
   useEffect(() => {
@@ -565,7 +589,7 @@ export function useStore() {
       }
     })
 
-    return { ok: true }
+    return { ok: true, orderId }
   }, [user, cart, events, clearCart, loadEvents, loadMyOrders])
 
   // ── VERIFY PAYDUNYA RETURN ─────────────────────────────────
@@ -594,7 +618,7 @@ export function useStore() {
     if (uid) await loadMyOrders(uid, freshEvents, user?.name || '')
     await loadResaleListings()
 
-    return { ok: true }
+    return { ok: true, orderId: pending.orderId }
   }, [user, loadEvents, loadMyOrders, loadResaleListings])
 
   // ── RESALE: list a ticket ───────────────────────────────────
@@ -755,7 +779,7 @@ export function useStore() {
     const freshEvents = await loadEvents()
     await loadMyOrders(user.id, freshEvents, user.name)
 
-    return { ok: true }
+    return { ok: true, orderId: buyerOrderId }
   }, [user, events, loadResaleListings, loadEvents, loadMyOrders])
 
   // ── FAVORITES ──────────────────────────────────────────────
@@ -1427,6 +1451,8 @@ export function useStore() {
     loadFeedPosts,
     createFeedPost,
     deleteFeedPost,
+
+    justPaidOrder,
 
     refreshOrganizerData,
     loadEvents,

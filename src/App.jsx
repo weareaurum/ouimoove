@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useStore } from './hooks/useStore.js'
 import { useToast } from './hooks/useToast.js'
 import { Navbar } from './components/Navbar.jsx'
@@ -33,6 +33,24 @@ function App() {
   const open  = (m) => setModal(m)
   const close = () => setModal(null)
 
+  // Dedupe so a purchase completed via both the return-flow and the
+  // realtime "just paid" event doesn't celebrate twice for the same order.
+  const celebratedOrders = useRef(new Set())
+  const celebrateOrder = (orderId, message = '🎉 Paiement confirmé ! Vos billets sont disponibles.') => {
+    if (!orderId || celebratedOrders.current.has(orderId)) return
+    celebratedOrders.current.add(orderId)
+    toast(message, 'success')
+    open('tickets')
+  }
+
+  // Fires "here are your tickets" the moment any of my orders gets marked
+  // paid — including when it happens via the webhook, independent of
+  // whether the browser ever made it back to the PayDunya return URL.
+  useEffect(() => {
+    if (!store.justPaidOrder) return
+    celebrateOrder(store.justPaidOrder.orderId)
+  }, [store.justPaidOrder]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Service worker + cities ────────────────────────────────
   useEffect(() => {
     if ('serviceWorker' in navigator) {
@@ -51,8 +69,7 @@ function App() {
         toast('Vérification du paiement…', 'info')
         const result = await store.verifyPaydunyaReturn()
         if (result?.ok) {
-          toast('🎉 Paiement confirmé ! Vos billets sont disponibles.', 'success')
-          open('tickets')
+          celebrateOrder(result.orderId)
         } else {
           toast('Paiement annulé ou échoué.', 'error')
         }
@@ -145,7 +162,7 @@ function App() {
       return
     }
     close()
-    toast('🎉 Paiement confirmé ! Vos billets sont disponibles.', 'success')
+    celebrateOrder(result.orderId)
   }
 
   const handleToggleFav = async (eventId) => {
@@ -182,7 +199,7 @@ function App() {
     if (!result) { toast('Achat impossible. Réessayez.', 'error'); return result }
     if (result.error) { toast(result.error, 'error'); return result }
     if (result.redirect) { window.location.href = result.redirect; return result }
-    toast('🎉 Billet acheté ! Disponible dans Mes Billets.', 'success')
+    celebrateOrder(result.orderId, '🎉 Billet acheté ! Disponible dans Mes Billets.')
     return result
   }
 
