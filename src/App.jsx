@@ -6,7 +6,8 @@ import { Hero } from './components/Hero.jsx'
 import { EventGrid } from './components/EventGrid.jsx'
 import { Footer } from './components/Footer.jsx'
 import { Toast } from './components/Toast.jsx'
-import { OnboardingModal, FaqModal, ContactModal, TermsModal } from './components/modals/InfoModals.jsx'
+import { OnboardingModal, FaqModal, ContactModal, TermsModal, PrivacyModal } from './components/modals/InfoModals.jsx'
+import { DeleteAccountModal } from './components/modals/DeleteAccountModal.jsx'
 import { AuthModal } from './components/modals/AuthModal.jsx'
 import { EventDetailModal } from './components/modals/EventDetailModal.jsx'
 import { CartModal } from './components/modals/CartModal.jsx'
@@ -346,6 +347,7 @@ function App() {
           close()
         }}
         onLogout={async () => { await store.logout(); toast('À bientôt !', 'info'); close() }}
+        onDeleteAccount={() => open('deleteAccount')}
         onApply={store.applyForOrganizer}
         onSubscribePush={async () => {
           const ok = await store.subscribePush()
@@ -493,6 +495,7 @@ function App() {
         onFaq={() => open('faq')}
         onContact={() => open('contact')}
         onTerms={() => open('terms')}
+        onPrivacy={() => open('privacy')}
         onMarket={() => open('market')}
         onCreateEvent={handleCreateEvent}
       />
@@ -518,6 +521,21 @@ function App() {
 
       {/* ── Terms ── */}
       <TermsModal open={modal === 'terms'} onClose={close} />
+
+      {/* ── Privacy Policy ── */}
+      <PrivacyModal
+        open={modal === 'privacy'}
+        onClose={close}
+        onDeleteAccount={store.user ? () => open('deleteAccount') : null}
+      />
+
+      {/* ── Delete Account ── */}
+      <DeleteAccountModal
+        open={modal === 'deleteAccount'}
+        onClose={close}
+        onConfirm={store.deleteAccount}
+        toast={toast}
+      />
 
       <Toast toasts={toasts} />
     </>

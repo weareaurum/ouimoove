@@ -267,7 +267,7 @@ function EventForm({ initial, submitLabel, onSubmit, onCancel, onUploadImage, on
       <div style={{ display: 'flex', gap: 12 }}>
         <div style={{ ...groupStyle, flex: 2 }}>
           <label style={labelStyle}>Titre *</label>
-          <input style={inputStyle} placeholder="Ex: Festival de Jazz de Lomé" value={title} onChange={e => setTitle(e.target.value)} />
+          <input style={inputStyle} placeholder="Ex: Festival de Jazz de Lomé" value={title} onChange={e => setTitle(e.target.value)} maxLength={150} />
         </div>
         <div style={{ ...groupStyle, flex: 1 }}>
           <label style={labelStyle}>Emoji</label>
@@ -336,7 +336,7 @@ function EventForm({ initial, submitLabel, onSubmit, onCancel, onUploadImage, on
 
       <div style={groupStyle}>
         <label style={labelStyle}>Description</label>
-        <textarea style={{ ...inputStyle, resize: 'vertical' }} rows={3} placeholder="Décrivez votre événement…" value={desc} onChange={e => setDesc(e.target.value)} />
+        <textarea style={{ ...inputStyle, resize: 'vertical' }} rows={3} placeholder="Décrivez votre événement…" value={desc} onChange={e => setDesc(e.target.value)} maxLength={5000} />
       </div>
 
       <div style={groupStyle}>

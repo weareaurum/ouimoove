@@ -257,19 +257,19 @@ export function ContactModal({ open, onClose, onSubmit, user, toast }) {
           <>
             <div style={{ marginBottom: 14 }}>
               <label style={fieldLabel}>Nom complet *</label>
-              <input style={fieldInput} value={name} onChange={e => setName(e.target.value)} placeholder="Votre nom" />
+              <input style={fieldInput} value={name} onChange={e => setName(e.target.value)} placeholder="Votre nom" maxLength={100} />
             </div>
             <div style={{ marginBottom: 14 }}>
               <label style={fieldLabel}>Email *</label>
-              <input style={fieldInput} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="vous@email.com" />
+              <input style={fieldInput} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="vous@email.com" maxLength={254} />
             </div>
             <div style={{ marginBottom: 14 }}>
               <label style={fieldLabel}>Sujet</label>
-              <input style={fieldInput} value={subject} onChange={e => setSubject(e.target.value)} placeholder="Objet de votre message" />
+              <input style={fieldInput} value={subject} onChange={e => setSubject(e.target.value)} placeholder="Objet de votre message" maxLength={150} />
             </div>
             <div style={{ marginBottom: 18 }}>
               <label style={fieldLabel}>Message *</label>
-              <textarea style={{ ...fieldInput, minHeight: 120, resize: 'vertical' }} value={message} onChange={e => setMessage(e.target.value)} placeholder="Comment pouvons-nous vous aider ?" />
+              <textarea style={{ ...fieldInput, minHeight: 120, resize: 'vertical' }} value={message} onChange={e => setMessage(e.target.value)} placeholder="Comment pouvons-nous vous aider ?" maxLength={5000} />
             </div>
             <button style={{ ...primaryBtn, width: '100%', opacity: loading ? 0.6 : 1 }} onClick={submit} disabled={loading}>
               {loading ? 'Envoi…' : 'Envoyer le message'}
@@ -302,10 +302,16 @@ export const TERMS_SECTIONS = [
   ['6. Organisateurs',
     "Les organisateurs sont seuls responsables de la tenue de leurs événements, des informations publiées et du respect de la réglementation applicable. OuiMoove fournit uniquement les outils de billetterie."],
   ['7. Données personnelles',
-    "Nous collectons les données strictement nécessaires à la fourniture du service (compte, commandes, paiements). Vos données ne sont pas vendues à des tiers. Vous pouvez demander leur suppression via le formulaire de contact."],
-  ['8. Responsabilité',
-    "OuiMoove s’efforce d’assurer un service fiable mais ne peut être tenu responsable des annulations, reports ou désagréments liés aux événements eux-mêmes."],
-  ['9. Contact',
+    "Nous collectons les données strictement nécessaires à la fourniture du service (compte, commandes, paiements). Vos données ne sont pas vendues à des tiers. Voir notre Politique de confidentialité pour le détail de vos droits (RGPD/CCPA) et pour supprimer votre compte."],
+  ['8. Contenu généré par les utilisateurs (Feed)',
+    "En publiant une photo, une vidéo ou un texte sur OuiMoove (notamment dans le Feed), vous garantissez en détenir les droits ou l’autorisation nécessaire, et vous nous accordez une licence non exclusive, gratuite et mondiale pour l’héberger et l’afficher dans le cadre du service. Vous restez seul responsable du contenu que vous publiez. Il est interdit de publier un contenu illégal, diffamatoire, portant atteinte aux droits d’un tiers ou violant la propriété intellectuelle d’autrui. OuiMoove peut retirer tout contenu signalé sans préavis."],
+  ['9. Signalement d’atteinte au droit d’auteur (DMCA)',
+    "Si vous estimez qu’un contenu publié sur OuiMoove viole vos droits d’auteur, envoyez une notification écrite à weareaurumgroup@gmail.com incluant : (a) l’identification de l’œuvre protégée, (b) l’URL ou la description du contenu concerné, (c) vos coordonnées, (d) une déclaration de bonne foi indiquant que l’usage n’est pas autorisé, et (e) votre signature (électronique acceptée). Nous retirerons le contenu signalé après vérification et pourrons suspendre les comptes en cas de violations répétées."],
+  ['10. Responsabilité',
+    "OuiMoove s’efforce d’assurer un service fiable mais ne peut être tenu responsable des annulations, reports ou désagréments liés aux événements eux-mêmes, ni du contenu publié par les utilisateurs."],
+  ['11. Droit applicable et arbitrage',
+    "Les présentes conditions sont régies par le droit français. Tout litige né de leur interprétation ou de leur exécution sera tranché définitivement selon le Règlement d’arbitrage de la Chambre de Commerce Internationale (CCI/ICC) par un ou plusieurs arbitres nommés conformément à ce règlement. Le siège de l’arbitrage est Paris, France, et la procédure se déroule en français. Cette clause n’empêche pas un recours aux juridictions compétentes pour toute mesure provisoire ou conservatoire."],
+  ['12. Contact',
     "Pour toute question relative à ces conditions, contactez-nous à contact@ouimoove.com."],
 ]
 
@@ -328,6 +334,60 @@ export function TermsModal({ open, onClose }) {
       <ModalHeader title="📜 Conditions d’utilisation" subtitle="Dernière mise à jour : 2026" />
       <ModalBody>
         <TermsBody />
+      </ModalBody>
+    </Modal>
+  )
+}
+
+/* ════════════════════════════════════════════════════════════
+   Privacy Policy — GDPR (EU) + CCPA (California) rights
+   ════════════════════════════════════════════════════════════ */
+const PRIVACY_SECTIONS = [
+  ['1. Qui sommes-nous',
+    "OuiMoove est une plateforme de billetterie d’événements. Le responsable du traitement de vos données personnelles est l’exploitant d’OuiMoove, joignable à contact@ouimoove.com."],
+  ['2. Données que nous collectons',
+    "Compte : nom, email, mot de passe (chiffré). Commandes : billets achetés, montants, moyen de paiement utilisé (nous ne stockons jamais vos identifiants bancaires ou mobile money — ceux-ci sont traités directement par nos partenaires de paiement PayDunya). Contenu que vous publiez : photos, vidéos et légendes dans le Feed. Technique : adresse IP, type d’appareil, journaux de connexion, cookies strictement nécessaires au fonctionnement du site."],
+  ['3. Pourquoi nous les utilisons',
+    "Fournir le service (créer votre compte, traiter vos commandes, générer vos billets), vous contacter (confirmations, notifications), assurer la sécurité et prévenir la fraude, et respecter nos obligations légales et comptables."],
+  ['4. Partage des données',
+    "Nous ne vendons jamais vos données personnelles. Elles sont partagées uniquement avec : nos partenaires de paiement (PayDunya) pour traiter vos transactions, l’organisateur d’un événement pour la validation de vos billets, et les autorités compétentes si la loi l’exige."],
+  ['5. Conservation',
+    "Vos données de compte sont conservées tant que votre compte est actif. Les données liées aux transactions (commandes, billets) sont conservées après suppression de votre compte pour satisfaire nos obligations comptables et légales, mais ne sont alors visibles qu’au niveau administratif — les organisateurs ne voient plus votre nom une fois votre compte supprimé."],
+  ['6. Vos droits (RGPD — résidents de l’UE)',
+    "Vous disposez d’un droit d’accès, de rectification, d’effacement, de limitation, de portabilité et d’opposition concernant vos données personnelles. Vous pouvez exercer ces droits directement via la page « Supprimer mon compte » ou en nous contactant à contact@ouimoove.com. Vous pouvez également introduire une réclamation auprès de l’autorité de protection des données de votre pays."],
+  ['7. Vos droits (CCPA — résidents de Californie)',
+    "Vous avez le droit de savoir quelles données personnelles sont collectées, de demander leur suppression, et de refuser toute « vente » ou « partage » de vos données — ce que nous ne pratiquons pas. Vous ne serez jamais pénalisé pour l’exercice de ces droits. Contactez-nous à contact@ouimoove.com pour toute demande."],
+  ['8. Sécurité',
+    "Nous utilisons des mesures techniques et organisationnelles raisonnables (chiffrement, contrôle d’accès) pour protéger vos données. Aucun système n’étant infaillible, nous ne pouvons garantir une sécurité absolue."],
+  ['9. Transferts internationaux',
+    "Nos serveurs et prestataires (hébergement, paiement) peuvent être situés hors de votre pays de résidence. Nous veillons à ce que ces transferts bénéficient de garanties appropriées."],
+  ['10. Cookies',
+    "Nous utilisons uniquement des cookies strictement nécessaires au fonctionnement du site (session, authentification). Aucun cookie publicitaire tiers n’est utilisé."],
+  ['11. Contact',
+    "Pour toute question ou demande relative à vos données personnelles : contact@ouimoove.com."],
+]
+
+export function PrivacyModal({ open, onClose, onDeleteAccount }) {
+  return (
+    <Modal open={open} onClose={onClose} size="lg">
+      <ModalHeader title="🔒 Politique de confidentialité" subtitle="RGPD (UE) & CCPA (Californie) — Dernière mise à jour : 2026" />
+      <ModalBody>
+        {PRIVACY_SECTIONS.map(([h, p], i) => (
+          <div key={i} style={{ marginBottom: 16 }}>
+            <h4 style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text)', marginBottom: 5 }}>{h}</h4>
+            <p style={{ color: 'var(--muted)', fontSize: '0.88rem', lineHeight: 1.6 }}>{p}</p>
+          </div>
+        ))}
+        {onDeleteAccount && (
+          <div style={{ ...card, textAlign: 'center', marginTop: 16 }}>
+            <p style={{ color: 'var(--muted)', fontSize: '0.9rem', marginBottom: 12 }}>
+              Vous souhaitez exercer votre droit à l’effacement ?
+            </p>
+            <button style={{ ...primaryBtn, background: 'var(--danger)', boxShadow: 'none' }} onClick={onDeleteAccount}>
+              Supprimer mon compte et mes données
+            </button>
+          </div>
+        )}
       </ModalBody>
     </Modal>
   )

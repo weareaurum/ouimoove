@@ -438,6 +438,26 @@ export function useStore() {
     return updated
   }, [user])
 
+  // Calls the delete-account edge function (service role) which: blocks if
+  // the user organizes upcoming events with sold tickets, purges their UGC
+  // (feed posts + storage), favorites, listings, push subs, verification
+  // docs, marks their past orders buyer_account_deleted=true (kept for
+  // admin/accounting, hidden from organizers), then deletes the auth user.
+  const deleteAccount = useCallback(async () => {
+    if (!user?.id) return { ok: false, error: 'Non connecté' }
+    const { data, error } = await supabase.functions.invoke('delete-account', { body: {} })
+    if (error || data?.error) return { ok: false, error: data?.error || error?.message || 'Erreur lors de la suppression.' }
+    await supabase.auth.signOut()
+    setUserState(null)
+    setUserRole('user')
+    setFavoritesState([])
+    setMyOrders([])
+    setOrganizerOrders([])
+    setOrganizerStats(null)
+    setApplications([])
+    return { ok: true }
+  }, [user])
+
   const applyForOrganizer = useCallback(async (reason) => {
     if (!user) return { ok: false, error: 'Non connecté' }
     const { error } = await supabase.from('organizer_applications').insert({ user_id: user.id, reason })
@@ -1400,7 +1420,7 @@ export function useStore() {
     loading, errors,
     resaleListings,
 
-    login, signup, googleLogin, logout, updateProfile,
+    login, signup, googleLogin, logout, updateProfile, deleteAccount,
     applyForOrganizer,
 
     addToCart, removeFromCart, clearCart,

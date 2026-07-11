@@ -1,4 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { isRateLimited, rateLimitedResponse } from './_shared/rateLimit.ts'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -18,6 +19,9 @@ const PD_HEADERS = {
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
+
+  // 10 invoice creations per IP per 5 minutes — generous for real checkout retries, tight enough to block abuse.
+  if (await isRateLimited(req, 'create-paydunya-payment', 10, 300)) return rateLimitedResponse(CORS)
 
   try {
     const { cart, total, userId, returnUrl, cancelUrl, method, phone } = await req.json()

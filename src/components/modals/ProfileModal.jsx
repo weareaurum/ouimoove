@@ -7,6 +7,7 @@ export function ProfileModal({
   onClose, onSave, onLogout, onApply,
   onSubscribePush, onUnsubscribePush,
   onSubmitVerification, onLoadVerificationStatus,
+  onDeleteAccount,
 }) {
   const [name, setName]         = useState('')
   const [email, setEmail]       = useState('')
@@ -216,6 +217,14 @@ export function ProfileModal({
         )}
 
         <button className={styles.logoutBtn} onClick={onLogout}>Se déconnecter</button>
+        {onDeleteAccount && (
+          <button
+            onClick={onDeleteAccount}
+            style={{ width: '100%', marginTop: 10, background: 'transparent', border: '1px solid rgba(239,68,68,.3)', color: 'var(--danger)', borderRadius: 10, padding: '10px 0', fontSize: '0.85rem', cursor: 'pointer' }}
+          >
+            🗑️ Supprimer mon compte
+          </button>
+        )}
       </ModalBody>
     </Modal>
   )

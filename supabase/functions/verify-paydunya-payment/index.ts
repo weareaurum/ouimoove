@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { confirmAndComplete } from './_shared/paydunya.ts'
+import { isRateLimited, rateLimitedResponse } from './_shared/rateLimit.ts'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -8,6 +9,8 @@ const CORS = {
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
+
+  if (await isRateLimited(req, 'verify-paydunya-payment', 20, 300)) return rateLimitedResponse(CORS)
 
   try {
     const { token } = await req.json()
