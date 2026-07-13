@@ -530,6 +530,8 @@ export function useStore() {
       const { error: orderError } = await supabase.from('orders').insert({
         id:             orderId,
         user_id:        user.id,
+        buyer_name:     user.name,
+        buyer_email:    user.email,
         total_cfa:      total,
         payment_method: method,
         payment_status: 'pending',
@@ -567,6 +569,8 @@ export function useStore() {
     const { error: orderError } = await supabase.from('orders').insert({
       id:             orderId,
       user_id:        user.id,
+      buyer_name:     user.name,
+      buyer_email:    user.email,
       total_cfa:      total,
       payment_method: method,
       payment_status: 'paid',
@@ -734,6 +738,8 @@ export function useStore() {
       await supabase.from('orders').insert({
         id:             buyerOrderId,
         user_id:        user.id,
+        buyer_name:     user.name,
+        buyer_email:    user.email,
         total_cfa:      total,
         payment_method: method,
         payment_status: 'pending',
@@ -768,6 +774,8 @@ export function useStore() {
     const { error: orderError } = await supabase.from('orders').insert({
       id:             buyerOrderId,
       user_id:        user.id,
+      buyer_name:     user.name,
+      buyer_email:    user.email,
       total_cfa:      total,
       payment_method: method || 'simulation',
       payment_status: 'paid',

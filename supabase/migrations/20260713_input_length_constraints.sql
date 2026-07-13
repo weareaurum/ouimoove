@@ -1,4 +1,4 @@
--- PENDING: apply via Supabase MCP once project access is restored.
+-- APPLIED 2026-07-13 via Supabase Management API.
 -- Server-side length caps — client-side maxLength is UX only and can be
 -- bypassed by any direct API call, so the real enforcement has to live here.
 

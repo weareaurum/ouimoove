@@ -1,4 +1,4 @@
--- PENDING: apply via Supabase MCP once project access is restored.
+-- APPLIED 2026-07-13 via Supabase Management API.
 
 create table if not exists public.rate_limits (
   bucket_key text primary key,
