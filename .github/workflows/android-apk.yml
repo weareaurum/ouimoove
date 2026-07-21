@@ -37,7 +37,11 @@ jobs:
           java-version: 21
 
       - name: Install dependencies
-        run: npm ci
+        # `npm ci` requires exact npm-version-compatible lockfile serialization;
+        # local dev here uses npm 11.x while this runner's Node 22 bundles
+        # npm 10.x, which disagreed over esbuild's optional platform deps.
+        # `npm install` resolves against the lockfile without that strict check.
+        run: npm install
 
       - name: Build web assets
         run: npm run build
