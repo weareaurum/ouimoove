@@ -64,7 +64,7 @@ function ListingCard({ listing, currentUserId, onBuy }) {
             </div>
           </div>
           {isOwn && (
-            <span style={{ background: 'rgba(142,45,110,.15)', color: 'var(--purple2)', fontSize: '0.7rem', fontWeight: 700, borderRadius: 99, padding: '2px 8px', whiteSpace: 'nowrap', flexShrink: 0 }}>
+            <span style={{ background: 'rgba(90,31,71,.15)', color: 'var(--purple2)', fontSize: '0.7rem', fontWeight: 700, borderRadius: 99, padding: '2px 8px', whiteSpace: 'nowrap', flexShrink: 0 }}>
               Ma vente
             </span>
           )}

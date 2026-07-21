@@ -75,7 +75,7 @@
 .btnGhost:hover {
   color: var(--text);
   border-color: var(--purple);
-  background: rgba(142,45,110,.1);
+  background: rgba(90,31,71,.1);
 }
 
 .btnPrimary {
@@ -91,10 +91,10 @@
 .btnPurple {
   background: linear-gradient(135deg, var(--purple), var(--purple2));
   color: #fff;
-  box-shadow: 0 4px 16px rgba(142,45,110,.3);
+  box-shadow: 0 4px 16px rgba(90,31,71,.3);
 }
 .btnPurple:hover {
-  box-shadow: 0 6px 22px rgba(142,45,110,.45);
+  box-shadow: 0 6px 22px rgba(90,31,71,.45);
   transform: translateY(-1px);
 }
 
@@ -172,7 +172,7 @@
 .drawerBtnPurple {
   background: linear-gradient(135deg, var(--purple), var(--purple2));
   color: #fff; border-color: transparent;
-  box-shadow: 0 4px 16px rgba(142,45,110,.3);
+  box-shadow: 0 4px 16px rgba(90,31,71,.3);
 }
 .drawerBtnDanger { background: var(--bg3); color: var(--danger); border-color: rgba(239,68,68,.3); }
 

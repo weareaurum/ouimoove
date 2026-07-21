@@ -112,14 +112,14 @@ export function QRScanner({ onScan, onClose }) {
                 ...c,
                 borderWidth: 3,
                 borderStyle: 'solid',
-                borderColor: lit ? '#22c55e' : '#8e2d6e',
+                borderColor: lit ? '#22c55e' : '#5a1f47',
                 borderRadius: 4,
                 transition: 'border-color 0.2s',
                 // only show the relevant sides
-                borderTop:    c.borderTop    ? `3px solid ${lit ? '#22c55e' : '#8e2d6e'}` : 'none',
-                borderLeft:   c.borderLeft   ? `3px solid ${lit ? '#22c55e' : '#8e2d6e'}` : 'none',
-                borderRight:  c.borderRight  ? `3px solid ${lit ? '#22c55e' : '#8e2d6e'}` : 'none',
-                borderBottom: c.borderBottom ? `3px solid ${lit ? '#22c55e' : '#8e2d6e'}` : 'none',
+                borderTop:    c.borderTop    ? `3px solid ${lit ? '#22c55e' : '#5a1f47'}` : 'none',
+                borderLeft:   c.borderLeft   ? `3px solid ${lit ? '#22c55e' : '#5a1f47'}` : 'none',
+                borderRight:  c.borderRight  ? `3px solid ${lit ? '#22c55e' : '#5a1f47'}` : 'none',
+                borderBottom: c.borderBottom ? `3px solid ${lit ? '#22c55e' : '#5a1f47'}` : 'none',
               }} />
             ))}
 
@@ -127,7 +127,7 @@ export function QRScanner({ onScan, onClose }) {
             {!lit && (
               <div style={{
                 position: 'absolute', left: 0, right: 0, height: 2,
-                background: 'linear-gradient(90deg, transparent, #8e2d6e, transparent)',
+                background: 'linear-gradient(90deg, transparent, #5a1f47, transparent)',
                 animation: 'scanline 1.8s ease-in-out infinite',
               }} />
             )}

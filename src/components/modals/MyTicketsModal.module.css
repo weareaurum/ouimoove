@@ -22,7 +22,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 14px 18px 10px;
-  background: linear-gradient(135deg, #3a1230 0%, #6a2456 55%, #8e2d6e 100%);
+  background: linear-gradient(135deg, #3a1230 0%, #6a2456 55%, #5a1f47 100%);
 }
 
 .headerLeft {
@@ -81,8 +81,8 @@
 }
 
 .tag {
-  background: rgba(142,45,110,0.15);
-  border: 1px solid rgba(142,45,110,0.3);
+  background: rgba(90,31,71,0.15);
+  border: 1px solid rgba(90,31,71,0.3);
   color: var(--purple3);
   border-radius: 20px;
   padding: 3px 10px;

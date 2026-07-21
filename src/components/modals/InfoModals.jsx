@@ -68,7 +68,7 @@ export function OnboardingModal({ open, onClose }) {
         <div style={{ textAlign: 'center', padding: '8px 4px 4px' }}>
           <div style={{
             fontSize: '3.4rem', lineHeight: 1, marginBottom: 18,
-            filter: 'drop-shadow(0 6px 16px rgba(142,45,110,.25))',
+            filter: 'drop-shadow(0 6px 16px rgba(90,31,71,.25))',
           }}>{s.emoji}</div>
           <h2 style={{
             fontFamily: 'var(--font-display)', fontWeight: 800,

@@ -148,7 +148,7 @@ export function ProfileModal({
                 <p style={sectionSub}>
                   Téléchargez une pièce d'identité (CNI, passeport ou permis de conduire) pour obtenir le badge ✓ Vérifié sur votre profil.
                 </p>
-                <label style={{ display: 'block', background: verifFile ? 'rgba(142,45,110,.1)' : 'var(--bg3)', border: `1px dashed ${verifFile ? 'var(--purple)' : 'var(--border)'}`, borderRadius: 10, padding: '14px', textAlign: 'center', cursor: 'pointer', transition: 'all .2s' }}>
+                <label style={{ display: 'block', background: verifFile ? 'rgba(90,31,71,.1)' : 'var(--bg3)', border: `1px dashed ${verifFile ? 'var(--purple)' : 'var(--border)'}`, borderRadius: 10, padding: '14px', textAlign: 'center', cursor: 'pointer', transition: 'all .2s' }}>
                   <input type="file" accept="image/*,application/pdf" style={{ display: 'none' }} onChange={e => setVerifFile(e.target.files?.[0] || null)} />
                   {verifFile
                     ? <span style={{ color: 'var(--purple3)', fontSize: '0.85rem', fontWeight: 600 }}>📄 {verifFile.name}</span>

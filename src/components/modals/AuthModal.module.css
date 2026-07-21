@@ -15,7 +15,7 @@
   transition: all .2s;
   margin-bottom: 4px;
 }
-.googleBtn:hover { border-color: var(--purple); background: rgba(142,45,110,.08); }
+.googleBtn:hover { border-color: var(--purple); background: rgba(90,31,71,.08); }
 
 .divider {
   text-align: center;
