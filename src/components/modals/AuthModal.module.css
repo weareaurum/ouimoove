@@ -15,7 +15,7 @@
   transition: all .2s;
   margin-bottom: 4px;
 }
-.googleBtn:hover { border-color: var(--purple); background: rgba(90,31,71,.08); }
+.googleBtn:hover { border-color: var(--purple); background: rgba(139,34,118,.08); }
 
 .divider {
   text-align: center;
@@ -75,9 +75,9 @@
   font-weight: 600;
   cursor: pointer;
   transition: all .2s;
-  box-shadow: 0 4px 20px rgba(245,166,35,.3);
+  box-shadow: 0 4px 20px rgba(244,154,14,.3);
 }
-.submitBtn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(245,166,35,.4); }
+.submitBtn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(244,154,14,.4); }
 .submitBtn:disabled { opacity: .6; cursor: not-allowed; }
 
 .terms {

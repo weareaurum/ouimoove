@@ -129,7 +129,7 @@ export function ProfileModal({
             <p style={sectionTitle}>🛡️ Obtenir le badge Vérifié</p>
 
             {verifStatus === 'pending' && (
-              <div style={{ background: 'rgba(245,166,35,.1)', border: '1px solid rgba(245,166,35,.3)', borderRadius: 10, padding: '12px 14px' }}>
+              <div style={{ background: 'rgba(244,154,14,.1)', border: '1px solid rgba(244,154,14,.3)', borderRadius: 10, padding: '12px 14px' }}>
                 <p style={{ color: 'var(--orange)', fontSize: '0.85rem', fontWeight: 600, margin: 0 }}>⏳ Vérification en cours</p>
                 <p style={{ color: 'var(--muted)', fontSize: '0.78rem', margin: '4px 0 0' }}>Votre document est en cours d'examen. Nous vous notifierons dès qu'une décision sera prise.</p>
               </div>
@@ -148,7 +148,7 @@ export function ProfileModal({
                 <p style={sectionSub}>
                   Téléchargez une pièce d'identité (CNI, passeport ou permis de conduire) pour obtenir le badge ✓ Vérifié sur votre profil.
                 </p>
-                <label style={{ display: 'block', background: verifFile ? 'rgba(90,31,71,.1)' : 'var(--bg3)', border: `1px dashed ${verifFile ? 'var(--purple)' : 'var(--border)'}`, borderRadius: 10, padding: '14px', textAlign: 'center', cursor: 'pointer', transition: 'all .2s' }}>
+                <label style={{ display: 'block', background: verifFile ? 'rgba(139,34,118,.1)' : 'var(--bg3)', border: `1px dashed ${verifFile ? 'var(--purple)' : 'var(--border)'}`, borderRadius: 10, padding: '14px', textAlign: 'center', cursor: 'pointer', transition: 'all .2s' }}>
                   <input type="file" accept="image/*,application/pdf" style={{ display: 'none' }} onChange={e => setVerifFile(e.target.files?.[0] || null)} />
                   {verifFile
                     ? <span style={{ color: 'var(--purple3)', fontSize: '0.85rem', fontWeight: 600 }}>📄 {verifFile.name}</span>

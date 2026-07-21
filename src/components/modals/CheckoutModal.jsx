@@ -21,11 +21,11 @@ const FloozLogo = () => (
 
 const CardIcon = () => (
   <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect width="44" height="44" rx="10" fill="rgba(90,31,71,0.15)" stroke="rgba(90,31,71,0.3)" strokeWidth="1"/>
-    <rect x="8" y="14" width="28" height="18" rx="3" stroke="#5a1f47" strokeWidth="1.5" fill="none"/>
-    <rect x="8" y="19" width="28" height="4" fill="#5a1f47" opacity="0.4"/>
-    <rect x="10" y="26" width="8" height="2" rx="1" fill="#5a1f47"/>
-    <rect x="20" y="26" width="6" height="2" rx="1" fill="#5a1f47" opacity="0.5"/>
+    <rect width="44" height="44" rx="10" fill="rgba(139,34,118,0.15)" stroke="rgba(139,34,118,0.3)" strokeWidth="1"/>
+    <rect x="8" y="14" width="28" height="18" rx="3" stroke="#8b2276" strokeWidth="1.5" fill="none"/>
+    <rect x="8" y="19" width="28" height="4" fill="#8b2276" opacity="0.4"/>
+    <rect x="10" y="26" width="8" height="2" rx="1" fill="#8b2276"/>
+    <rect x="20" y="26" width="6" height="2" rx="1" fill="#8b2276" opacity="0.5"/>
   </svg>
 )
 

@@ -15,7 +15,7 @@ const primaryBtn = {
   color: '#fff', border: 'none', borderRadius: 12,
   padding: '12px 22px', fontWeight: 700, fontSize: '0.95rem',
   cursor: 'pointer', fontFamily: 'var(--font-body)',
-  boxShadow: '0 4px 18px rgba(245,166,35,.32)',
+  boxShadow: '0 4px 18px rgba(244,154,14,.32)',
 }
 const ghostBtn = {
   background: 'transparent', color: 'var(--muted)',
@@ -68,7 +68,7 @@ export function OnboardingModal({ open, onClose }) {
         <div style={{ textAlign: 'center', padding: '8px 4px 4px' }}>
           <div style={{
             fontSize: '3.4rem', lineHeight: 1, marginBottom: 18,
-            filter: 'drop-shadow(0 6px 16px rgba(90,31,71,.25))',
+            filter: 'drop-shadow(0 6px 16px rgba(139,34,118,.25))',
           }}>{s.emoji}</div>
           <h2 style={{
             fontFamily: 'var(--font-display)', fontWeight: 800,

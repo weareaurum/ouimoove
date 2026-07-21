@@ -18,7 +18,7 @@
   font-weight: 800;
   font-size: 2rem;
   color: #fff;
-  box-shadow: 0 8px 30px rgba(90,31,71,.35);
+  box-shadow: 0 8px 30px rgba(139,34,118,.35);
 }
 
 .googleTag {
@@ -78,10 +78,10 @@
   font-weight: 600;
   cursor: pointer;
   transition: all .2s;
-  box-shadow: 0 4px 20px rgba(245,166,35,.3);
+  box-shadow: 0 4px 20px rgba(244,154,14,.3);
   margin-bottom: 10px;
 }
-.saveBtn:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(245,166,35,.4); }
+.saveBtn:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(244,154,14,.4); }
 
 .logoutBtn {
   width: 100%;

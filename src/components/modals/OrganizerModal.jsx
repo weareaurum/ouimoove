@@ -367,7 +367,7 @@ function EventForm({ initial, submitLabel, onSubmit, onCancel, onUploadImage, on
       {/* Private toggle */}
       <div
         onClick={() => setIsPrivate(v => !v)}
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: isPrivate ? 'rgba(90,31,71,.12)' : 'var(--bg3)', border: `1px solid ${isPrivate ? 'var(--purple)' : 'var(--border)'}`, borderRadius: 10, padding: '12px 14px', marginBottom: 14, cursor: 'pointer', transition: 'all .2s', userSelect: 'none' }}
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: isPrivate ? 'rgba(139,34,118,.12)' : 'var(--bg3)', border: `1px solid ${isPrivate ? 'var(--purple)' : 'var(--border)'}`, borderRadius: 10, padding: '12px 14px', marginBottom: 14, cursor: 'pointer', transition: 'all .2s', userSelect: 'none' }}
       >
         <div>
           <div style={{ fontWeight: 600, fontSize: '0.88rem', color: isPrivate ? 'var(--purple3)' : 'var(--text)' }}>🔒 Événement privé</div>
@@ -560,7 +560,7 @@ function CheckinDialog({ order, eventId, onConfirm, onClose }) {
                 </div>
                 <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
                   {Array.from({ length: remaining }, (_, i) => i + 1).map(n => (
-                    <button key={n} onClick={() => setCount(n)} style={{ padding: '4px 12px', borderRadius: 8, border: `1px solid ${count === n ? 'var(--purple)' : 'var(--border)'}`, background: count === n ? 'rgba(90,31,71,.15)' : 'var(--bg3)', color: count === n ? 'var(--purple3)' : 'var(--muted)', cursor: 'pointer', fontSize: '0.82rem', fontWeight: count === n ? 700 : 400 }}>
+                    <button key={n} onClick={() => setCount(n)} style={{ padding: '4px 12px', borderRadius: 8, border: `1px solid ${count === n ? 'var(--purple)' : 'var(--border)'}`, background: count === n ? 'rgba(139,34,118,.15)' : 'var(--bg3)', color: count === n ? 'var(--purple3)' : 'var(--muted)', cursor: 'pointer', fontSize: '0.82rem', fontWeight: count === n ? 700 : 400 }}>
                       {n === remaining ? `Tous (${n})` : n}
                     </button>
                   ))}
@@ -572,7 +572,7 @@ function CheckinDialog({ order, eventId, onConfirm, onClose }) {
               width: '100%', padding: '14px', borderRadius: 14, border: 'none',
               background: 'linear-gradient(135deg, var(--purple), var(--purple2))',
               color: '#fff', fontWeight: 700, fontSize: '1rem', cursor: 'pointer',
-              boxShadow: '0 4px 20px rgba(90,31,71,.35)', opacity: busy ? 0.7 : 1,
+              boxShadow: '0 4px 20px rgba(139,34,118,.35)', opacity: busy ? 0.7 : 1,
             }}>
               {busy ? 'Validation…' : `✓ Valider ${count} billet${count > 1 ? 's' : ''}`}
             </button>
@@ -649,7 +649,7 @@ function AttendeesTab({ myEvents, organizerOrders, onCheckin, onCheckinByRef, on
             background: 'linear-gradient(135deg, var(--purple), var(--purple2))',
             color: '#fff', fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            boxShadow: '0 4px 16px rgba(90,31,71,.3)',
+            boxShadow: '0 4px 16px rgba(139,34,118,.3)',
           }}
         >
           📷 Scanner un billet
@@ -745,7 +745,7 @@ function AttendeesTab({ myEvents, organizerOrders, onCheckin, onCheckinByRef, on
                   {!isRefunded && !fullyIn && (
                     <button
                       onClick={() => setConfirmOrder(p)}
-                      style={{ padding: '5px 10px', borderRadius: 8, border: '1px solid var(--border)', background: partialIn ? 'rgba(245,166,35,.15)' : 'transparent', color: partialIn ? 'var(--orange)' : 'var(--muted)', cursor: 'pointer', fontSize: '0.75rem' }}
+                      style={{ padding: '5px 10px', borderRadius: 8, border: '1px solid var(--border)', background: partialIn ? 'rgba(244,154,14,.15)' : 'transparent', color: partialIn ? 'var(--orange)' : 'var(--muted)', cursor: 'pointer', fontSize: '0.75rem' }}
                     >
                       {partialIn ? `+Valider` : 'Valider'}
                     </button>

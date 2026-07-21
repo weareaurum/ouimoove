@@ -26,6 +26,6 @@
   background: linear-gradient(135deg, var(--orange), #d97f0a); color: #fff;
   border: none; border-radius: 12px; padding: 13px;
   font-size: 1rem; font-weight: 600; cursor: pointer; transition: all .2s;
-  box-shadow: 0 4px 20px rgba(245,166,35,.3);
+  box-shadow: 0 4px 20px rgba(244,154,14,.3);
 }
-.checkoutBtn:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(245,166,35,.4); }
+.checkoutBtn:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(244,154,14,.4); }

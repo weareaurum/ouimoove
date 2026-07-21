@@ -149,7 +149,7 @@ function PostCard({ post, currentUserId, onDelete }) {
       </div>
 
       <div style={{ padding: '10px 14px 14px' }}>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(90,31,71,.1)', border: '1px solid rgba(90,31,71,.25)', borderRadius: 99, padding: '3px 10px', fontSize: '0.76rem', color: 'var(--purple3)', fontWeight: 600, marginBottom: 8 }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(139,34,118,.1)', border: '1px solid rgba(139,34,118,.25)', borderRadius: 99, padding: '3px 10px', fontSize: '0.76rem', color: 'var(--purple3)', fontWeight: 600, marginBottom: 8 }}>
           <span>{post.eventEmoji}</span>
           <span>{post.eventTitle}</span>
           {post.eventVenue && <span style={{ opacity: 0.7 }}>· {post.eventVenue}</span>}

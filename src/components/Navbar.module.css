@@ -75,26 +75,26 @@
 .btnGhost:hover {
   color: var(--text);
   border-color: var(--purple);
-  background: rgba(90,31,71,.1);
+  background: rgba(139,34,118,.1);
 }
 
 .btnPrimary {
   background: linear-gradient(135deg, var(--orange), #d97f0a);
   color: #fff;
-  box-shadow: 0 4px 16px rgba(245,166,35,.3);
+  box-shadow: 0 4px 16px rgba(244,154,14,.3);
 }
 .btnPrimary:hover {
-  box-shadow: 0 6px 22px rgba(245,166,35,.4);
+  box-shadow: 0 6px 22px rgba(244,154,14,.4);
   transform: translateY(-1px);
 }
 
 .btnPurple {
   background: linear-gradient(135deg, var(--purple), var(--purple2));
   color: #fff;
-  box-shadow: 0 4px 16px rgba(90,31,71,.3);
+  box-shadow: 0 4px 16px rgba(139,34,118,.3);
 }
 .btnPurple:hover {
-  box-shadow: 0 6px 22px rgba(90,31,71,.45);
+  box-shadow: 0 6px 22px rgba(139,34,118,.45);
   transform: translateY(-1px);
 }
 
@@ -167,12 +167,12 @@
 .drawerBtnPrimary {
   background: linear-gradient(135deg, var(--orange), #d97f0a);
   color: #fff; border-color: transparent;
-  box-shadow: 0 4px 16px rgba(245,166,35,.3);
+  box-shadow: 0 4px 16px rgba(244,154,14,.3);
 }
 .drawerBtnPurple {
   background: linear-gradient(135deg, var(--purple), var(--purple2));
   color: #fff; border-color: transparent;
-  box-shadow: 0 4px 16px rgba(90,31,71,.3);
+  box-shadow: 0 4px 16px rgba(139,34,118,.3);
 }
 .drawerBtnDanger { background: var(--bg3); color: var(--danger); border-color: rgba(239,68,68,.3); }
 

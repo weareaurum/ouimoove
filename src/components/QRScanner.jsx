@@ -74,7 +74,7 @@ export function QRScanner({ onScan, onClose }) {
       }}>
         <div>
           <div style={{ fontWeight: 800, fontSize: '1rem', color: '#fff' }}>
-            <span style={{ color: '#fff' }}>Oui</span><span style={{ color: '#f5a623' }}>Moove</span>
+            <span style={{ color: '#fff' }}>Oui</span><span style={{ color: '#f49a0e' }}>Moove</span>
             <span style={{ color: 'rgba(255,255,255,0.5)', fontWeight: 400, fontSize: '0.8rem', marginLeft: 10 }}>Scan billet</span>
           </div>
         </div>
@@ -112,14 +112,14 @@ export function QRScanner({ onScan, onClose }) {
                 ...c,
                 borderWidth: 3,
                 borderStyle: 'solid',
-                borderColor: lit ? '#22c55e' : '#5a1f47',
+                borderColor: lit ? '#22c55e' : '#8b2276',
                 borderRadius: 4,
                 transition: 'border-color 0.2s',
                 // only show the relevant sides
-                borderTop:    c.borderTop    ? `3px solid ${lit ? '#22c55e' : '#5a1f47'}` : 'none',
-                borderLeft:   c.borderLeft   ? `3px solid ${lit ? '#22c55e' : '#5a1f47'}` : 'none',
-                borderRight:  c.borderRight  ? `3px solid ${lit ? '#22c55e' : '#5a1f47'}` : 'none',
-                borderBottom: c.borderBottom ? `3px solid ${lit ? '#22c55e' : '#5a1f47'}` : 'none',
+                borderTop:    c.borderTop    ? `3px solid ${lit ? '#22c55e' : '#8b2276'}` : 'none',
+                borderLeft:   c.borderLeft   ? `3px solid ${lit ? '#22c55e' : '#8b2276'}` : 'none',
+                borderRight:  c.borderRight  ? `3px solid ${lit ? '#22c55e' : '#8b2276'}` : 'none',
+                borderBottom: c.borderBottom ? `3px solid ${lit ? '#22c55e' : '#8b2276'}` : 'none',
               }} />
             ))}
 
@@ -127,7 +127,7 @@ export function QRScanner({ onScan, onClose }) {
             {!lit && (
               <div style={{
                 position: 'absolute', left: 0, right: 0, height: 2,
-                background: 'linear-gradient(90deg, transparent, #5a1f47, transparent)',
+                background: 'linear-gradient(90deg, transparent, #8b2276, transparent)',
                 animation: 'scanline 1.8s ease-in-out infinite',
               }} />
             )}

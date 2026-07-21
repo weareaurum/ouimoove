@@ -6,11 +6,11 @@
   --bg3:      #f3edf0;   /* subtle plum-tinted surface (inputs, chips) */
   --card:     #ffffff;
   --border:   rgba(36,18,46,0.10);
-  --orange:   #f5a623;   /* logo amber */
-  --orange2:  #ffbe57;
-  --purple:   #5a1f47;   /* logo eggplant */
-  --purple2:  #7a3468;
-  --purple3:  #46163a;   /* deep plum for text accents on light */
+  --orange:   #f49a0e;   /* logo amber (exact) */
+  --orange2:  #f7b856;
+  --purple:   #8b2276;   /* logo plum (exact) */
+  --purple2:  #a24e91;
+  --purple3:  #681a59;   /* deep plum for text accents on light */
   --text:     #241626;   /* near-black plum */
   --muted:    #80708a;   /* muted plum-grey */
   --danger:   #e23d3d;
