@@ -7,8 +7,10 @@ android {
         applicationId "com.ouimoove.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
+        // Bump versionCode on every Play upload (monotonically increasing);
+        // versionName is the user-visible version string.
         versionCode 1
-        versionName "1.0"
+        versionName "1.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,10 +18,28 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Upload-key signing for Play. The keystore never lives in the repo:
+    // CI decodes RELEASE_KEYSTORE_BASE64 into android/release.keystore and
+    // provides the password/alias via env. Local devs without these env
+    // vars can still build debug normally.
+    signingConfigs {
+        release {
+            if (System.getenv('RELEASE_KEYSTORE_PASSWORD') != null) {
+                storeFile file('../release.keystore')
+                storeType 'pkcs12'
+                storePassword System.getenv('RELEASE_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('RELEASE_KEY_ALIAS') ?: 'upload'
+                keyPassword System.getenv('RELEASE_KEYSTORE_PASSWORD')
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (System.getenv('RELEASE_KEYSTORE_PASSWORD') != null) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 }
