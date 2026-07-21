@@ -1,4 +1,4 @@
-package com.ouimoove.app;
+package com.ouimoove.myapp;
 
 import com.getcapacitor.BridgeActivity;
 

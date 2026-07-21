@@ -1,5 +1,5 @@
 {
-  "appId": "com.ouimoove.app",
+  "appId": "com.ouimoove.myapp",
   "appName": "OuiMoove",
   "webDir": "dist",
   "android": {
