@@ -19,7 +19,6 @@ export function Navbar({
             <img
               src="/ouimoove-logo.png"
               alt="OuiMoove"
-              style={{ height: '100px', width: 'auto', display: 'block' }}
               onError={() => setLogoErr(true)}
             />
           ) : (
