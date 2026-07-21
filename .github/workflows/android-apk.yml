@@ -1,0 +1,60 @@
+name: Build Android APK
+
+# Builds the OuiMoove Android app (Capacitor shell around the Vite build).
+# Debug APK is unsigned-for-store but installable on any Android device —
+# download it from the run's Artifacts section.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'android/**'
+      - 'capacitor.config.json'
+      - 'package.json'
+      - 'index.html'
+      - '.github/workflows/android-apk.yml'
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web assets
+        run: npm run build
+        # These are client-side-public values — they ship verbatim inside every
+        # web bundle served at ouimoove.vercel.app, so they are not secrets.
+        env:
+          VITE_SUPABASE_URL: https://jgbwuhonuiqwwpxzdeiw.supabase.co
+          VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpnYnd1aG9udWlxd3dweHpkZWl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDY0NTcsImV4cCI6MjA4OTQyMjQ1N30.FW3jXFxfh7A5nvQR1omVGw3Ax0ZQENBuUYSgayvCVDs
+          VITE_PAYMENT_MODE: paydunya
+          VITE_VAPID_PUBLIC_KEY: BAu0rBr0UMzfyb9aVsrhECbni1csa1DCDwMGO2WrbOaFpeJwTGdpczzMLAeUQE923szJyqYVWYX2wFyWcyCEnX0
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Build debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ouimoove-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30

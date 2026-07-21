@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
+import { Capacitor } from '@capacitor/core'
+import { Browser } from '@capacitor/browser'
 import { useStore } from './hooks/useStore.js'
 import { useToast } from './hooks/useToast.js'
 import { Navbar } from './components/Navbar.jsx'
@@ -40,8 +42,21 @@ function App() {
   const celebrateOrder = (orderId, message = '🎉 Paiement confirmé ! Vos billets sont disponibles.') => {
     if (!orderId || celebratedOrders.current.has(orderId)) return
     celebratedOrders.current.add(orderId)
+    // In the native app the PayDunya checkout is an in-app browser sheet on
+    // top of the webview — dismiss it so the celebration is visible.
+    if (Capacitor.isNativePlatform()) Browser.close().catch(() => {})
     toast(message, 'success')
     open('tickets')
+  }
+
+  // On the web, checkout navigates the tab to PayDunya and the return URL
+  // brings the user back. Inside the Capacitor shell, navigating the webview
+  // away would leave the app entirely — so open checkout in the in-app
+  // browser instead and let the paydunya-webhook + justPaidOrder realtime
+  // listener complete and celebrate the order (no return redirect needed).
+  const openCheckout = async (url) => {
+    if (Capacitor.isNativePlatform()) await Browser.open({ url })
+    else window.location.href = url
   }
 
   // Fires "here are your tickets" the moment any of my orders gets marked
@@ -159,7 +174,7 @@ function App() {
     if (result.error) { toast(result.error, 'error'); return }
     if (result.pdError) { toast(`Erreur PayDunya : ${result.pdError}`, 'error'); return }
     if (result.redirect) {
-      window.location.href = result.redirect
+      await openCheckout(result.redirect)
       return
     }
     close()
@@ -199,7 +214,7 @@ function App() {
     const result = await store.buyResaleListing(listing, method, phone)
     if (!result) { toast('Achat impossible. Réessayez.', 'error'); return result }
     if (result.error) { toast(result.error, 'error'); return result }
-    if (result.redirect) { window.location.href = result.redirect; return result }
+    if (result.redirect) { await openCheckout(result.redirect); return result }
     celebrateOrder(result.orderId, '🎉 Billet acheté ! Disponible dans Mes Billets.')
     return result
   }

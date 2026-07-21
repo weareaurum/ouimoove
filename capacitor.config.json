@@ -1,0 +1,11 @@
+{
+  "appId": "com.ouimoove.app",
+  "appName": "OuiMoove",
+  "webDir": "dist",
+  "android": {
+    "allowMixedContent": false
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}
