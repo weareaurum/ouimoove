@@ -19,6 +19,10 @@ on:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
+    env:
+      # `secrets` isn't a recognized named-value inside step-level `if:`
+      # expressions — mirror it into a plain env var first, then gate on that.
+      HAS_KEYSTORE: ${{ secrets.RELEASE_KEYSTORE_BASE64 != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -64,13 +68,13 @@ jobs:
       # ── Signed release bundle for the Play Store ──
       # Runs only when the signing secrets are configured on the repo.
       - name: Decode upload keystore
-        if: ${{ secrets.RELEASE_KEYSTORE_BASE64 != '' }}
+        if: ${{ env.HAS_KEYSTORE == 'true' }}
         run: echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > android/release.keystore
         env:
           RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
 
       - name: Build signed release AAB
-        if: ${{ secrets.RELEASE_KEYSTORE_BASE64 != '' }}
+        if: ${{ env.HAS_KEYSTORE == 'true' }}
         working-directory: android
         run: ./gradlew bundleRelease --no-daemon
         env:
@@ -78,7 +82,7 @@ jobs:
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
 
       - name: Upload release AAB artifact
-        if: ${{ secrets.RELEASE_KEYSTORE_BASE64 != '' }}
+        if: ${{ env.HAS_KEYSTORE == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: ouimoove-release-aab
