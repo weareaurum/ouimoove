@@ -23,6 +23,7 @@ jobs:
       # `secrets` isn't a recognized named-value inside step-level `if:`
       # expressions — mirror it into a plain env var first, then gate on that.
       HAS_KEYSTORE: ${{ secrets.RELEASE_KEYSTORE_BASE64 != '' }}
+      HAS_PLAY_KEY: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -84,6 +85,9 @@ jobs:
         env:
           RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          # Play rejects a re-used versionCode on the same track — the run
+          # number always increases, unlike a hand-maintained counter.
+          CI_VERSION_CODE: ${{ github.run_number }}
 
       - name: Upload release AAB artifact
         if: ${{ env.HAS_KEYSTORE == 'true' }}
@@ -92,3 +96,18 @@ jobs:
           name: ouimoove-release-aab
           path: android/app/build/outputs/bundle/release/app-release.aab
           retention-days: 90
+
+      # ── Auto-publish to the closed testing track ──
+      # Runs only when both the keystore and the Play service account are
+      # configured. The service account needs "Release manager" (or Admin)
+      # access granted under Play Console → Setup → API access.
+      - name: Publish to Play closed testing (ouimoove-test)
+        if: ${{ env.HAS_KEYSTORE == 'true' && env.HAS_PLAY_KEY == 'true' }}
+        uses: r0adkll/upload-google-play@v1.1.3
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.ouimoove.myapp
+          releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
+          track: ouimoove-test
+          status: completed
+          whatsNewDirectory: android/whatsnew

@@ -7,9 +7,10 @@ android {
         applicationId "com.ouimoove.myapp"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        // Bump versionCode on every Play upload (monotonically increasing);
-        // versionName is the user-visible version string.
-        versionCode 1
+        // Play requires a strictly-increasing versionCode on every upload to
+        // the same track — CI passes the GitHub Actions run number (always
+        // increasing) via CI_VERSION_CODE; local/manual builds fall back to 1.
+        versionCode (System.getenv('CI_VERSION_CODE') as Integer) ?: 1
         versionName "1.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
