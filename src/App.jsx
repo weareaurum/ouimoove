@@ -398,8 +398,8 @@ function App() {
         onClose={close}
         onCreate={async (ev) => {
           const created = await store.createEvent(ev)
-          if (!created) { toast("Impossible de publier l'événement", 'error'); return null }
-          toast('Événement publié ! 🎉', 'success')
+          if (!created) { toast("Impossible de créer l'événement", 'error'); return null }
+          toast('Événement envoyé pour validation ⏳', 'success')
           return created
         }}
         onUpdate={async (eventId, data) => {
@@ -469,6 +469,19 @@ function App() {
         onDenyVerif={async (userId, reason) => {
           const ok = await store.denyVerification(userId, reason)
           if (ok) toast('Demande refusée.', 'info')
+          else toast('Impossible de refuser', 'error')
+          return ok
+        }}
+        onLoadPendingEvents={store.loadPendingEvents}
+        onApproveEvent={async (id) => {
+          const ok = await store.approveEvent(id)
+          if (ok) toast('Événement approuvé et publié ✓', 'success')
+          else toast("Impossible d'approuver", 'error')
+          return ok
+        }}
+        onRejectEvent={async (id) => {
+          const ok = await store.deleteEvent(id)
+          if (ok) toast('Événement refusé et supprimé', 'info')
           else toast('Impossible de refuser', 'error')
           return ok
         }}

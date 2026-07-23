@@ -440,6 +440,11 @@ function MyEventsTab({ myEvents, onDelete, onEdit, loading, errors }) {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontWeight: 700, fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.title}</span>
+              {e.status === 'pending' && (
+                <span style={{ flexShrink: 0, background: 'rgba(244,154,14,.15)', color: 'var(--orange)', fontSize: '0.65rem', fontWeight: 700, borderRadius: 99, padding: '2px 8px', textTransform: 'uppercase', letterSpacing: '.05em' }}>
+                  En attente de validation
+                </span>
+              )}
               {isPast && (
                 <span style={{ flexShrink: 0, background: 'var(--bg2)', color: 'var(--muted)', fontSize: '0.65rem', fontWeight: 700, borderRadius: 99, padding: '2px 8px', textTransform: 'uppercase', letterSpacing: '.05em' }}>
                   Terminé
@@ -771,7 +776,7 @@ function AttendeesTab({ myEvents, organizerOrders, onCheckin, onCheckinByRef, on
 }
 
 // ── Admin Tab ─────────────────────────────────────────────────
-function AdminTab({ applications, onPromote, onReject, onRefresh, onLoadVerifRequests, onApproveVerif, onDenyVerif, onLoadCityRequests, onApproveCityRequest, onDenyCityRequest }) {
+function AdminTab({ applications, onPromote, onReject, onRefresh, onLoadVerifRequests, onApproveVerif, onDenyVerif, onLoadCityRequests, onApproveCityRequest, onDenyCityRequest, onLoadPendingEvents, onApproveEvent, onRejectEvent }) {
   const [busy, setBusy] = useState({})
   const [verifRequests, setVerifRequests] = useState([])
   const [denyTarget, setDenyTarget] = useState(null)
@@ -779,14 +784,33 @@ function AdminTab({ applications, onPromote, onReject, onRefresh, onLoadVerifReq
   const [verifBusy, setVerifBusy] = useState({})
   const [cityRequests, setCityRequests] = useState([])
   const [cityBusy, setCityBusy] = useState({})
+  const [pendingEvents, setPendingEvents] = useState([])
+  const [eventBusy, setEventBusy] = useState({})
 
-  // Load verification + city requests on mount
+  // Load verification + city + pending-event requests on mount
   useEffect(() => {
     onLoadVerifRequests?.().then(setVerifRequests)
     onLoadCityRequests?.().then(setCityRequests)
+    onLoadPendingEvents?.().then(setPendingEvents)
   }, [])
 
   const refreshVerif = () => onLoadVerifRequests?.().then(setVerifRequests)
+  const refreshPendingEvents = () => onLoadPendingEvents?.().then(setPendingEvents)
+
+  const handleApproveEvent = async (id) => {
+    setEventBusy(b => ({ ...b, [id]: true }))
+    const ok = await onApproveEvent(id)
+    setEventBusy(b => ({ ...b, [id]: false }))
+    if (ok) refreshPendingEvents()
+  }
+
+  const handleRejectEvent = async (id) => {
+    if (!window.confirm("Supprimer définitivement cet événement ? Cette action est irréversible.")) return
+    setEventBusy(b => ({ ...b, [id]: true }))
+    const ok = await onRejectEvent(id)
+    setEventBusy(b => ({ ...b, [id]: false }))
+    if (ok) refreshPendingEvents()
+  }
 
   const handleApprove = async (userId) => {
     setVerifBusy(b => ({ ...b, [userId]: true }))
@@ -811,6 +835,55 @@ function AdminTab({ applications, onPromote, onReject, onRefresh, onLoadVerifReq
 
   return (
     <div>
+      {/* ── Pending events (moderation queue) ── */}
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <p style={{ color: 'var(--muted)', fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
+            🕓 Événements en attente ({pendingEvents.length})
+          </p>
+          <button onClick={refreshPendingEvents} style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 12px', color: 'var(--muted)', cursor: 'pointer', fontSize: '0.78rem' }}>↻</button>
+        </div>
+
+        {pendingEvents.length === 0 ? (
+          <p style={{ color: 'var(--muted)', fontSize: '0.82rem' }}>Aucun événement en attente de validation.</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {pendingEvents.map(e => (
+              <div key={e.id} style={{ background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 14px' }}>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span>{e.emoji}</span> {e.title}
+                    </div>
+                    <div style={{ color: 'var(--muted)', fontSize: '0.75rem', marginTop: 2 }}>
+                      {formatDate(e.date)} · {e.city} · {e.category}
+                    </div>
+                    <div style={{ color: 'var(--muted)', fontSize: '0.75rem', marginTop: 2 }}>
+                      Organisateur : {e.organizerName || '—'} {e.organizerEmail ? `(${e.organizerEmail})` : ''}
+                    </div>
+                    {e.desc && (
+                      <div style={{ color: 'var(--text)', fontSize: '0.78rem', marginTop: 6, maxWidth: 420 }}>{e.desc}</div>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                    <button
+                      disabled={eventBusy[e.id]}
+                      onClick={() => handleRejectEvent(e.id)}
+                      style={{ padding: '5px 10px', borderRadius: 8, border: '1px solid rgba(239,68,68,.4)', background: 'rgba(239,68,68,.1)', color: 'var(--danger)', cursor: 'pointer', fontSize: '0.75rem', opacity: eventBusy[e.id] ? 0.5 : 1 }}
+                    >🗑️ Supprimer</button>
+                    <button
+                      disabled={eventBusy[e.id]}
+                      onClick={() => handleApproveEvent(e.id)}
+                      style={{ padding: '5px 10px', borderRadius: 8, border: '1px solid rgba(34,197,94,.4)', background: 'rgba(34,197,94,.12)', color: 'var(--success)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600, opacity: eventBusy[e.id] ? 0.5 : 1 }}
+                    >{eventBusy[e.id] ? '…' : '✓ Approuver'}</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* ── Verification requests ── */}
       <div style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
@@ -1082,6 +1155,7 @@ export function OrganizerModal({
   onInvite, onLoadInvitations,
   onLoadVerifRequests, onApproveVerif, onDenyVerif,
   onRequestCity, onLoadCityRequests, onApproveCityRequest, onDenyCityRequest,
+  onLoadPendingEvents, onApproveEvent, onRejectEvent,
   cities,
   loading = {}, errors = {},
   toast,
@@ -1203,6 +1277,9 @@ export function OrganizerModal({
             onLoadCityRequests={onLoadCityRequests}
             onApproveCityRequest={onApproveCityRequest}
             onDenyCityRequest={onDenyCityRequest}
+            onLoadPendingEvents={onLoadPendingEvents}
+            onApproveEvent={onApproveEvent}
+            onRejectEvent={onRejectEvent}
           />
         )}
       </ModalBody>

@@ -130,6 +130,54 @@ export function useStore() {
     return shaped
   }, [])
 
+  // ── LOAD MY EVENTS (organizer's own, any status) ────────────
+  // Separate from `loadEvents` (public, published-only) so an organizer
+  // still sees their own pending/cancelled events in "Mes Événements"
+  // while those stay hidden from the public listing until an admin
+  // approves them.
+  const [myEventsAll, setMyEventsAll] = useState([])
+  const loadMyEvents = useCallback(async (userId) => {
+    if (!userId) return []
+    const { data, error } = await supabase
+      .from('events')
+      .select(`
+        id, title, description, city, venue, category,
+        event_date, emoji, image_url, status, organizer_id,
+        ticket_types (id, name, price_cfa, quantity_total, quantity_sold)
+      `)
+      .eq('organizer_id', userId)
+      .order('event_date', { ascending: true })
+
+    if (error) { console.error('loadMyEvents:', error); return [] }
+    const shaped = (data || []).map(shapeEvent)
+    setMyEventsAll(shaped)
+    return shaped
+  }, [])
+
+  // ── LOAD PENDING EVENTS (admin moderation queue) ────────────
+  const loadPendingEvents = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('events')
+      .select(`
+        id, title, description, city, venue, category,
+        event_date, emoji, image_url, status, organizer_id,
+        profiles:organizer_id (name, email),
+        ticket_types (id, name, price_cfa, quantity_total, quantity_sold)
+      `)
+      .eq('status', 'pending')
+      .order('event_date', { ascending: true })
+
+    if (error) { console.error('loadPendingEvents:', error); return [] }
+    return (data || []).map((e) => ({ ...shapeEvent(e), organizerName: e.profiles?.name, organizerEmail: e.profiles?.email }))
+  }, [])
+
+  const approveEvent = useCallback(async (eventId) => {
+    const { error } = await supabase.from('events').update({ status: 'published' }).eq('id', eventId)
+    if (error) { console.error('approveEvent:', error); return false }
+    await loadEvents()
+    return true
+  }, [loadEvents])
+
   // ── LOAD RESALE LISTINGS ────────────────────────────────────
   const loadResaleListings = useCallback(async () => {
     setLoad('resale', true)
@@ -365,6 +413,7 @@ export function useStore() {
     loadOrganizerOrders(user.id, events)
     if (userRole === 'organizer' || userRole === 'admin') {
       loadOrganizerStats(user.id)
+      loadMyEvents(user.id)
     }
     if (userRole === 'admin') {
       loadApplications()
@@ -843,7 +892,9 @@ export function useStore() {
         emoji:        ev.emoji || '🎟️',
         image_url:    ev.imageUrl || null,
         is_private:   ev.isPrivate || false,
-        status:       'published',
+        // New events wait for admin review before they're publicly visible —
+        // loadEvents() only ever selects status='published'.
+        status:       'pending',
       })
       .select()
       .single()
@@ -864,23 +915,25 @@ export function useStore() {
     }
 
     const freshEvents = await loadEvents()
+    await loadMyEvents(user.id)
     if (userRole === 'organizer' || userRole === 'admin') {
       await loadOrganizerStats(user.id)
       await loadOrganizerOrders(user.id, freshEvents)
     }
     return created
-  }, [user, userRole, loadEvents, loadOrganizerStats, loadOrganizerOrders])
+  }, [user, userRole, loadEvents, loadMyEvents, loadOrganizerStats, loadOrganizerOrders])
 
   const deleteEvent = useCallback(async (id) => {
     const { error } = await supabase.from('events').delete().eq('id', id)
     if (error) { console.error('deleteEvent:', error); return false }
     const freshEvents = await loadEvents()
+    if (user?.id) await loadMyEvents(user.id)
     if (userRole === 'organizer' || userRole === 'admin') {
       await loadOrganizerOrders(user?.id, freshEvents)
       await loadOrganizerStats(user?.id)
     }
     return true
-  }, [user, userRole, loadEvents, loadOrganizerOrders, loadOrganizerStats])
+  }, [user, userRole, loadEvents, loadMyEvents, loadOrganizerOrders, loadOrganizerStats])
 
   const updateEvent = useCallback(async (eventId, ev) => {
     const { error } = await supabase
@@ -932,8 +985,9 @@ export function useStore() {
     }
 
     await loadEvents()
+    if (user?.id) await loadMyEvents(user.id)
     return true
-  }, [loadEvents])
+  }, [user, loadEvents, loadMyEvents])
 
   // ── REFUND ORDER ───────────────────────────────────────────
   const refundOrder = useCallback(async (orderId) => {
@@ -1406,12 +1460,15 @@ export function useStore() {
     if (!user?.id) return
     await loadOrganizerOrders(user.id)
     await loadOrganizerStats(user.id)
-  }, [user, loadOrganizerOrders, loadOrganizerStats])
+    await loadMyEvents(user.id)
+  }, [user, loadOrganizerOrders, loadOrganizerStats, loadMyEvents])
 
   // ── DERIVED ────────────────────────────────────────────────
   const cartCount   = cart.reduce((s, i) => s + i.qty, 0)
   const cartTotal   = cart.reduce((s, i) => s + i.price * i.qty, 0)
-  const myEvents    = events.filter((e) => e.organizer === user?.id)
+  // Organizer's own events at any status (pending/published/cancelled) —
+  // distinct from the public `events` list, which only holds published ones.
+  const myEvents    = myEventsAll
   const isOrganizer = userRole === 'organizer' || userRole === 'admin'
   const isAdmin     = userRole === 'admin'
 
@@ -1462,6 +1519,10 @@ export function useStore() {
     loadCityRequests,
     approveCityRequest,
     denyCityRequest,
+
+    loadMyEvents,
+    loadPendingEvents,
+    approveEvent,
 
     inviteToEvent,
     loadInvitations,
